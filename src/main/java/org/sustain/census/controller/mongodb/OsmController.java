@@ -17,13 +17,15 @@ import org.sustain.census.db.mongodb.DBConnection;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.sustain.census.controller.mongodb.SpatialQueryUtil.getGeometryFromGeoJson;
 
 public class OsmController {
     private static final Logger log = LogManager.getLogger(OsmController.class);
 
-    public static ArrayList<String> getOsmData(OsmRequest request, OsmRequest.Dataset dataset) {
+    public static void getOsmData(OsmRequest request, OsmRequest.Dataset dataset,
+                                  ConcurrentLinkedQueue<String> queue) {
         String datasetStr = Constants.OSM_DATASETS.get(dataset);
         Geometry geometry = getGeometryFromGeoJson(request.getRequestGeoJson());
         SpatialOp spatialOp = request.getSpatialOp();
@@ -49,9 +51,7 @@ public class OsmController {
         ArrayList<String> results = new ArrayList<>();
         while (cursor.hasNext()) {
             Document next = cursor.next();
-            results.add(next.toJson());
+            queue.add(next.toJson());
         }
-
-        return results;
     }
 }

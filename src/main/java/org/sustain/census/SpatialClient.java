@@ -29,43 +29,10 @@ public class SpatialClient {
 
     public static void main(String[] args) {
         CensusGrpc.CensusBlockingStub censusBlockingStub = new SpatialClient().getCensusBlockingStub();
-        final String geoJson = "{\n" +
-                "   \"type\":\"Feature\",\n" +
-                "   \"properties\":{\n" +
-                "\n" +
-                "   },\n" +
-                "   \"geometry\":{\n" +
-                "      \"type\":\"polygon\",\n" +
-                "      \"coordinates\":[\n" +
-                "  [\n" +
-                "                                        [\n" +
-                "                                        -105.72280883789064,\n" +
-                "                                        40.390488829277956\n" +
-                "                                        ],\n" +
-                "                                        [\n" +
-                "                                        -105.72280883789064,\n" +
-                "                                        40.75661990450192\n" +
-                "                                        ],\n" +
-                "                                        [\n" +
-                "                                        -104.44976806640626,\n" +
-                "                                        40.75661990450192\n" +
-                "                                        ],\n" +
-                "                                        [\n" +
-                "                                        -104.44976806640626,\n" +
-                "                                        40.390488829277956\n" +
-                "                                        ],\n" +
-                "                                        [\n" +
-                "                                        -105.72280883789064,\n" +
-                "                                        40.390488829277956\n" +
-                "                                        ]\n" +
-                "                                    ]\n" +
-                "      ]\n" +
-                "   }\n" +
-                "}";
 
         //exampleSpatialQuery(censusBlockingStub, geoJson);
         //exampleTargetedQuery(censusBlockingStub, geoJson);
-        exampleOsmQuery(censusBlockingStub, geoJson);
+        exampleOsmQuery(censusBlockingStub, SampleGeoJson.FORT_COLLINS);
         //exampleDatasetQuery(censusBlockingStub, geoJson);
     }
 
@@ -92,7 +59,7 @@ public class SpatialClient {
         requestParams.put("properties.highway", "residential");
         OsmRequest request = OsmRequest.newBuilder()
                 .setDataset(OsmRequest.Dataset.ALL)
-                .setSpatialOp(SpatialOp.GeoIntersects)
+                .setSpatialOp(SpatialOp.GeoWithin)
                 .addRequestParams(OsmRequest.OsmRequestParam.newBuilder()
                         .setKey("properties.highway")
                         .setValue("primary"))

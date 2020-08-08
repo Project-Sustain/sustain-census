@@ -7,7 +7,6 @@ import org.sustain.census.OsmRequest;
 import org.sustain.census.OsmResponse;
 import org.sustain.census.controller.mongodb.OsmController;
 
-import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class OsmQueryHandler {
@@ -24,33 +23,31 @@ public class OsmQueryHandler {
 
     public void handleOsmQuery() {
         OsmRequest.Dataset dataset = request.getDataset();
+        ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
+        new StreamWriter(queue, responseObserver).start();
         switch (dataset) {
             // query all OSM datasets
             case ALL:
-                ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
-                new StreamWriter(queue, responseObserver).start();
-                queue.addAll(OsmController.getOsmData(request, OsmRequest.Dataset.LINES));
-                queue.addAll(OsmController.getOsmData(request, OsmRequest.Dataset.MULTI_LINES));
-                queue.addAll(OsmController.getOsmData(request, OsmRequest.Dataset.POINTS));
-                queue.addAll(OsmController.getOsmData(request, OsmRequest.Dataset.MULTI_POLYGONS));
-                queue.addAll(OsmController.getOsmData(request, OsmRequest.Dataset.OTHER));
+                OsmController.getOsmData(request, OsmRequest.Dataset.LINES, queue);
+                OsmController.getOsmData(request, OsmRequest.Dataset.MULTI_LINES, queue);
+                //OsmController.getOsmData(request, OsmRequest.Dataset.POINTS, queue);
+                //OsmController.getOsmData(request, OsmRequest.Dataset.MULTI_POLYGONS, queue);
+                //OsmController.getOsmData(request, OsmRequest.Dataset.OTHER, queue);
 
                 for (String osmDatum : queue) {
                     responseObserver.onNext(OsmResponse.newBuilder().setResponse(osmDatum).build());
                 }
-                responseObserver.onCompleted();
 
+                completed = true;
+                responseObserver.onCompleted();
                 return;
             case UNRECOGNIZED:
                 log.warn("Invalid OSM dataset");
         }
 
         // not ALL, query a single OSM dataset
-        ArrayList<String> osmData = OsmController.getOsmData(request, dataset);
+        OsmController.getOsmData(request, dataset, queue);
 
-        for (String osmDatum : osmData) {
-            responseObserver.onNext(OsmResponse.newBuilder().setResponse(osmDatum).build());
-        }
         completed = true;
         responseObserver.onCompleted();
     }
@@ -67,6 +64,7 @@ public class OsmQueryHandler {
         @Override
         public void run() {
             while (!completed && data.size() > 0) {
+                log.info("running");
                 String datum = data.remove();
                 responseObserver.onNext(OsmResponse.newBuilder().setResponse(datum).build());
             }
