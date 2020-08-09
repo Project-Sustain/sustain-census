@@ -8,6 +8,7 @@ import org.sustain.census.OsmResponse;
 import org.sustain.census.controller.mongodb.OsmController;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class OsmQueryHandler {
     private static final Logger log = LogManager.getLogger(OsmQueryHandler.class);
@@ -23,7 +24,7 @@ public class OsmQueryHandler {
 
     public void handleOsmQuery() {
         OsmRequest.Dataset dataset = request.getDataset();
-        ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
+        LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
         new StreamWriter(queue, responseObserver).start();
         switch (dataset) {
             // query all OSM datasets
@@ -53,20 +54,26 @@ public class OsmQueryHandler {
     }
 
     private class StreamWriter extends Thread {
-        private volatile ConcurrentLinkedQueue<String> data;
+        private volatile LinkedBlockingQueue<String> data;
         private StreamObserver<OsmResponse> responseObserver;
 
-        public StreamWriter(ConcurrentLinkedQueue<String> data, StreamObserver<OsmResponse> responseObserver) {
+        public StreamWriter(LinkedBlockingQueue<String> data, StreamObserver<OsmResponse> responseObserver) {
             this.data = data;
             this.responseObserver = responseObserver;
         }
 
         @Override
         public void run() {
-            while (!completed && data.size() > 0) {
-                log.info("running");
-                String datum = data.remove();
-                responseObserver.onNext(OsmResponse.newBuilder().setResponse(datum).build());
+            log.info("Starting StreamWriter thread");
+            while (!completed) {
+                log.info("Queue size: " + data.size());
+                if (data.size() > 0) {
+                    String datum = data.remove();
+                    responseObserver.onNext(OsmResponse.newBuilder().setResponse(datum).build());
+                }
+                if (completed && data.size() == 0) {
+                    return;
+                }
             }
         }
     }
