@@ -7,7 +7,6 @@ import org.sustain.census.OsmRequest;
 import org.sustain.census.OsmResponse;
 import org.sustain.census.controller.mongodb.OsmController;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class OsmQueryHandler {
@@ -15,7 +14,7 @@ public class OsmQueryHandler {
 
     private final OsmRequest request;
     private final StreamObserver<OsmResponse> responseObserver;
-    private boolean completed = false;
+    private boolean fetchingCompleted = false;
 
     public OsmQueryHandler(OsmRequest request, StreamObserver<OsmResponse> responseObserver) {
         this.request = request;
@@ -31,16 +30,11 @@ public class OsmQueryHandler {
             case ALL:
                 OsmController.getOsmData(request, OsmRequest.Dataset.LINES, queue);
                 OsmController.getOsmData(request, OsmRequest.Dataset.MULTI_LINES, queue);
-                //OsmController.getOsmData(request, OsmRequest.Dataset.POINTS, queue);
+                OsmController.getOsmData(request, OsmRequest.Dataset.POINTS, queue);
                 //OsmController.getOsmData(request, OsmRequest.Dataset.MULTI_POLYGONS, queue);
-                //OsmController.getOsmData(request, OsmRequest.Dataset.OTHER, queue);
+                OsmController.getOsmData(request, OsmRequest.Dataset.OTHER, queue);
 
-                for (String osmDatum : queue) {
-                    responseObserver.onNext(OsmResponse.newBuilder().setResponse(osmDatum).build());
-                }
-
-                completed = true;
-                responseObserver.onCompleted();
+                fetchingCompleted = true;
                 return;
             case UNRECOGNIZED:
                 log.warn("Invalid OSM dataset");
@@ -49,8 +43,7 @@ public class OsmQueryHandler {
         // not ALL, query a single OSM dataset
         OsmController.getOsmData(request, dataset, queue);
 
-        completed = true;
-        responseObserver.onCompleted();
+        fetchingCompleted = true;
     }
 
     private class StreamWriter extends Thread {
@@ -65,16 +58,20 @@ public class OsmQueryHandler {
         @Override
         public void run() {
             log.info("Starting StreamWriter thread");
-            while (!completed) {
-                log.info("Queue size: " + data.size());
+            while (!fetchingCompleted) {
+                // log.info("Queue size: " + data.size());
                 if (data.size() > 0) {
                     String datum = data.remove();
                     responseObserver.onNext(OsmResponse.newBuilder().setResponse(datum).build());
                 }
-                if (completed && data.size() == 0) {
-                    return;
-                }
             }
+
+            // if there if any data remaining in the queue after fetching is completed
+            for (String datum : data) {
+                responseObserver.onNext(OsmResponse.newBuilder().setResponse(datum).build());
+            }
+
+            responseObserver.onCompleted();
         }
     }
 }

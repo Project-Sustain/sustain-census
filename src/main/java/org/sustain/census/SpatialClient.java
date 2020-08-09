@@ -54,18 +54,15 @@ public class SpatialClient {
     }
 
     private static void exampleOsmQuery(CensusGrpc.CensusBlockingStub censusBlockingStub, String geoJson) {
-        Map<String, String> requestParams = new HashMap<>();
-        requestParams.put("properties.highway", "primary");
-        requestParams.put("properties.highway", "residential");
         OsmRequest request = OsmRequest.newBuilder()
-                .setDataset(OsmRequest.Dataset.ALL)
+            .setDataset(OsmRequest.Dataset.ALL)
                 .setSpatialOp(SpatialOp.GeoWithin)
-                .addRequestParams(OsmRequest.OsmRequestParam.newBuilder()
-                        .setKey("properties.highway")
-                        .setValue("primary"))
-                .addRequestParams(OsmRequest.OsmRequestParam.newBuilder()
-                        .setKey("properties.highway")
-                        .setValue("residential"))
+                // .addRequestParams(OsmRequest.OsmRequestParam.newBuilder()
+                //         .setKey("properties.highway")
+                //         .setValue("primary"))
+                // .addRequestParams(OsmRequest.OsmRequestParam.newBuilder()
+                //         .setKey("properties.highway")
+                //         .setValue("residential"))
                 .setRequestGeoJson(geoJson).build();
 
         Iterator<OsmResponse> osmResponseIterator = censusBlockingStub.osmQuery(request);

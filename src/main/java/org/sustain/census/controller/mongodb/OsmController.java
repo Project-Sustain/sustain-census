@@ -43,9 +43,13 @@ public class OsmController {
         MongoDatabase db = DBConnection.getConnection();
         MongoCollection<Document> collection = db.getCollection(datasetStr);
 
-
         Bson spatialFilter = SpatialQueryUtil.getSpatialOp(spatialOp, geometry);
-        FindIterable<Document> documents = collection.find(Filters.and(spatialFilter, Filters.or(orFilters)));
+        FindIterable<Document> documents;
+        if (requestParamsList.size() > 0) {
+            documents = collection.find(Filters.and(spatialFilter, Filters.or(orFilters)));
+        } else {
+            documents = collection.find(spatialFilter);
+        }
 
         MongoCursor<Document> cursor = documents.cursor();
 
@@ -55,6 +59,6 @@ public class OsmController {
             Document next = cursor.next();
             queue.add(next.toJson());
         }
-        log.info("Completed. Count: " + count);
+        log.info(datasetStr + " count: " + count);
     }
 }

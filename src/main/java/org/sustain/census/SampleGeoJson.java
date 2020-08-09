@@ -116,4 +116,34 @@ public class SampleGeoJson {
             "        ]\n" +
             "      }\n" +
             "    }";
+
+    public static final String MULTIPLE_STATES = "{\n" +
+            "\t\"geometry\": {\n" +
+            "\t\t\"type\": \"Polygon\",\n" +
+            "\t\t\"coordinates\": [\n" +
+            "\t\t\t[\n" +
+            "\t\t\t\t[\n" +
+            "\t\t\t\t\t-105.72280883789064,\n" +
+            "\t\t\t\t\t40.390488829277956\n" +
+            "\t\t\t\t],\n" +
+            "\t\t\t\t[\n" +
+            "\t\t\t\t\t-105.72280883789064,\n" +
+            "\t\t\t\t\t40.75661990450192\n" +
+            "\t\t\t\t],\n" +
+            "\t\t\t\t[\n" +
+            "\t\t\t\t\t-104.44976806640626,\n" +
+            "\t\t\t\t\t40.75661990450192\n" +
+            "\t\t\t\t],\n" +
+            "\t\t\t\t[\n" +
+            "\t\t\t\t\t-104.44976806640626,\n" +
+            "\t\t\t\t\t40.390488829277956\n" +
+            "\t\t\t\t],\n" +
+            "\t\t\t\t[\n" +
+            "\t\t\t\t\t-105.72280883789064,\n" +
+            "\t\t\t\t\t40.390488829277956\n" +
+            "\t\t\t\t]\n" +
+            "\t\t\t]\n" +
+            "\t\t]\n" +
+            "\t}\n" +
+            "}";
 }
