@@ -34,7 +34,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver
     compile group: 'org.mongodb', name: 'mongo-java-driver', version: '3.12.5'
-    
+
     compile 'org.json:json:20171018'
 
     // https://mvnrepository.com/artifact/com.google.code.gson/gson
@@ -103,10 +103,26 @@ task nearestHospitals(type: CreateStartScripts) {
     classpath = startScripts.classpath
 }
 
+task nearestFireStations(type: CreateStartScripts) {
+    mainClassName = 'org.sustain.proximity.NearestFireStationsQuerier'
+    applicationName = 'nearest-fire-stations'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = startScripts.classpath
+}
+
+task nearestPowerPlants(type: CreateStartScripts) {
+    mainClassName = 'org.sustain.proximity.NearestPowerPlantsQuerier'
+    applicationName = 'nearest-power-plants'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = startScripts.classpath
+}
+
 applicationDistribution.into('bin') {
     from(sustainServer)
     from(censusClient)
     from(spatialClient)
     from(nearestHospitals)
+    from(nearestFireStations)
+    from(nearestPowerPlants)
     fileMode = 0755
 }

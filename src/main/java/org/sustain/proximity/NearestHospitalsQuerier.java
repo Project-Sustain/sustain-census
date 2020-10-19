@@ -41,10 +41,8 @@ public class NearestHospitalsQuerier {
             }
             double x = document.getDouble("x");
             double y = document.getDouble("y");
-            String gisjoin = document.getString("GISJOIN");
+            String gisjoin = document.getString(Constants.GIS_JOIN);
             HashMap<String, Double> hospitalDistanceMap = new HashMap<>();
-
-            //System.out.println("GISJOIN: " + gisjoin);
 
             Point refPoint = new Point(new Position(x, y));
 
@@ -101,7 +99,7 @@ public class NearestHospitalsQuerier {
         JsonArray finalArray = new JsonArray();
         for (String gisJoin : nearestHospitalsMap.keySet()) {
             JsonObject entry = new JsonObject();
-            entry.addProperty("GISJOIN", gisJoin);
+            entry.addProperty(Constants.GIS_JOIN, gisJoin);
 
             JsonObject nearestHospitals = new JsonObject();
             HashMap<String, Double> hospitalDistanceMap = nearestHospitalsMap.get(gisJoin);
@@ -110,8 +108,6 @@ public class NearestHospitalsQuerier {
             }
 
             entry.add("nearest_hospitals", nearestHospitals);
-            //System.out.println(entry.toString());
-            //System.out.println();
             finalArray.add(entry);
         }
 
