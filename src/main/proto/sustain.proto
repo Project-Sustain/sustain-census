@@ -178,7 +178,7 @@ enum ComparisonOperator {
  }
 
 
- message CompoundResponse {
+message CompoundResponse {
     string data = 1;
     string geoJson = 2;
 }
