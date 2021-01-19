@@ -3,10 +3,14 @@ plugins {
     id 'application'
     // ASSUMES GRADLE 2.12 OR HIGHER. Use plugin version 0.7.5 with earlier gradle versions
     id 'com.google.protobuf' version '0.8.8'
+    // For generating fat/uber JARs
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
     // Generate IntelliJ IDEA's .idea & .iml project files
     id 'idea'
     // For Scala source code in the project
     id 'scala'
+    // For Java source code in the project
+    id 'java'
 }
 
 group 'org.sustain.census'
@@ -31,7 +35,8 @@ dependencies {
     implementation "io.grpc:grpc-stub:${grpcVersion}"
     implementation 'org.scala-lang:scala-library:2.12.12'
     implementation 'org.scala-lang.modules:scala-xml_2.12:1.2.0'
-    compileOnly "org.apache.tomcat:annotations-api:6.0.53"
+
+    compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
     runtimeOnly "io.netty:netty-tcnative-boringssl-static:${nettyTcNativeVersion}"
 
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8'
@@ -47,13 +52,48 @@ dependencies {
 
     testImplementation "io.grpc:grpc-testing:${grpcVersion}"
     testImplementation "org.mockito:mockito-core:1.9.5"
-
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
 }
 
+// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
+// Defines where the source code is for respective compilation targets.
+sourceSets {
+
+    main {
+
+        // Separate Scala source directories from Java source directories.
+        scala {
+            srcDirs = ['src/main/scala']
+            outputDir = file("$buildDir/classes/scala/main")
+        }
+        java {
+            srcDirs = ['src/main/java', 'build/generated/source/proto/main/grpc', 'build/generated/source/proto/main/java']
+            outputDir = file("$buildDir/classes/java/main")
+        }
+
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
 test {
     useJUnitPlatform()
+}
+
+// Output to build/libs/HelloWorld.jar
+shadowJar {
+    archiveBaseName.set('HelloWorld')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+}
+
+shadow {
+    // Define entrypoint for the Scala fat JAR
+    mainClassName = 'org.sustain.HelloWorld'
 }
 
 protobuf {
@@ -67,33 +107,9 @@ protobuf {
 }
 
 
-// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
-sourceSets {
-    main {
-        scala {
-            srcDirs = ['src/main/java',  'src/main/scala']
-            outputDir = file("$buildDir/classes/scala/main")
-        }
-        java {
-            srcDirs = ['build/generated/source/proto/main/grpc', 'build/generated/source/proto/main/java',]
-        }
 
-    }
-    test {
-        scala {
-            srcDirs = ['src/main/java', 'src/test/scala']
-        }
-        java {
-            srcDirs = []
-        }
-
-    }
-
-}
 
 startScripts.enabled = false
-
-
 
 
 task sustainServer(type: CreateStartScripts) {
