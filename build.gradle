@@ -30,39 +30,38 @@ def nettyTcNativeVersion = '2.0.30.Final'
 def protocVersion = '3.11.0'
 
 dependencies {
+
+    // --- Java source dependencies ---
     implementation "io.grpc:grpc-netty:${grpcVersion}"
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
-    implementation 'org.scala-lang:scala-library:2.12.12'
-    implementation 'org.scala-lang.modules:scala-xml_2.12:1.2.0'
-
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8'
+    implementation 'org.json:json:20171018'
+    implementation group: 'org.mongodb', name: 'mongo-java-driver', version: '3.12.5'
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.7'
     compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
     runtimeOnly "io.netty:netty-tcnative-boringssl-static:${nettyTcNativeVersion}"
 
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8'
-
-    // https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver
-    implementation group: 'org.mongodb', name: 'mongo-java-driver', version: '3.12.5'
-
-    implementation 'org.json:json:20171018'
-
-    // https://mvnrepository.com/artifact/com.google.code.gson/gson
-    implementation group: 'com.google.code.gson', name: 'gson', version: '2.7'
-
+    // --- Testing dependencies ---
     testImplementation "io.grpc:grpc-testing:${grpcVersion}"
     testImplementation "org.mockito:mockito-core:1.9.5"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+
+    // --- Scala source dependencies ---
+    implementation 'org.scala-lang:scala-library:2.12.12'
+    implementation 'org.scala-lang.modules:scala-xml_2.12:1.2.0'
+    implementation 'org.apache.spark:spark-core_2.12:3.0.0'
+    implementation 'org.apache.spark:spark-launcher_2.12:3.0.0'
 }
 
 // Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
 // Defines where the source code is for respective compilation targets.
 sourceSets {
 
+    // Separate Scala source directories from Java source directories.
     main {
-
-        // Separate Scala source directories from Java source directories.
         scala {
             srcDirs = ['src/main/scala']
             outputDir = file("$buildDir/classes/scala/main")
@@ -71,7 +70,6 @@ sourceSets {
             srcDirs = ['src/main/java', 'build/generated/source/proto/main/grpc', 'build/generated/source/proto/main/java']
             outputDir = file("$buildDir/classes/java/main")
         }
-
     }
     test {
         java {
@@ -84,9 +82,9 @@ test {
     useJUnitPlatform()
 }
 
-// Output to build/libs/HelloWorld.jar
+// Output to build/libs/shadow.jar
 shadowJar {
-    archiveBaseName.set('HelloWorld')
+    archiveBaseName.set('shadow')
     archiveClassifier.set('')
     archiveVersion.set('')
 }
@@ -106,11 +104,7 @@ protobuf {
     }
 }
 
-
-
-
 startScripts.enabled = false
-
 
 task sustainServer(type: CreateStartScripts) {
     mainClassName = 'org.sustain.server.SustainServer'
@@ -126,6 +120,13 @@ task censusClient(type: CreateStartScripts) {
     classpath = startScripts.classpath
 }
 
+task sparkJob(type: CreateStartScripts) {
+    mainClassName = 'org.sustain.models.SparkJob'
+    applicationName = 'spark-job'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = startScripts.classpath
+}
+
 task spatialClient(type: CreateStartScripts) {
     mainClassName = 'org.sustain.client.SpatialClient'
     applicationName = 'spatial-client'
@@ -136,6 +137,7 @@ task spatialClient(type: CreateStartScripts) {
 applicationDistribution.into('bin') {
     from(sustainServer)
     from(censusClient)
+    from(sparkJob)
     from(spatialClient)
     fileMode = 0755
 }

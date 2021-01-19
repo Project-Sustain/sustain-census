@@ -5,7 +5,7 @@
 .PHONY: build
 build:
 	chmod +x gradlew
-	./gradlew install -x test
+	./gradlew installDist -x test
 
 build-with-tests:
 	chmod +x gradlew
@@ -29,6 +29,9 @@ run-spatial-client:
 	export DB_PORT=27017
 	export SERVER_HOST="lattice-167"
 	sh ./build/install/sustain-census-grpc/bin/spatial-client
+
+run-spark-job:
+	sh ./build/install/sustain-census-grpc/bin/spark-job
 
 proto:
 	./gradlew generateProto
