@@ -27,6 +27,16 @@ service Sustain{
   rpc ExecuteTargetedCensusQuery (TargetedCensusRequest) returns (stream TargetedCensusResponse) {}
 
   rpc CompoundQuery (CompoundRequest) returns (stream CompoundResponse) {}
+
+  rpc ModelQuery (ModelRequest) returns (ModelResponse) {}
+}
+
+message ModelRequest {
+  string request = 1;
+}
+
+message ModelResponse {
+  string results = 1;
 }
 
 message SviRequest {
@@ -162,46 +172,46 @@ message Predicate {
 
 
 enum JoinOperator {
-    INNER_JOIN = 0;
-    OUTER_JOIN = 1;
-    LEFT_JOIN = 2;
-    RIGHT_JOIN = 3;
+  INNER_JOIN = 0;
+  OUTER_JOIN = 1;
+  LEFT_JOIN = 2;
+  RIGHT_JOIN = 3;
 }
 
 
 enum ComparisonOperator {
-    EQUAL = 0;
-    GREATER_THAN = 1;
-    LESS_THAN = 2;
-    GREATER_THAN_OR_EQUAL = 3;
-    LESS_THAN_OR_EQUAL = 4;
- }
+  EQUAL = 0;
+  GREATER_THAN = 1;
+  LESS_THAN = 2;
+  GREATER_THAN_OR_EQUAL = 3;
+  LESS_THAN_OR_EQUAL = 4;
+}
 
 
 message CompoundResponse {
-    string data = 1;
-    string geoJson = 2;
+  string data = 1;
+  string geoJson = 2;
 }
 
 
 message CompoundRequest {
-    oneof FirstPredicate {
-        Query first_query = 1;
-        CompoundRequest first_compound_request = 2;
-    }
+  oneof FirstPredicate {
+    Query first_query = 1;
+    CompoundRequest first_compound_request = 2;
+  }
 
-    JoinOperator join = 3;
+  JoinOperator join = 3;
 
-    oneof SecondPredicate {
-        Query second_query = 4;
-        CompoundRequest second_compound_request = 5;
-    }
+  oneof SecondPredicate {
+    Query second_query = 4;
+    CompoundRequest second_compound_request = 5;
+  }
 }
 
 
 message Query {
-    string host = 1;
-    int32 port = 2;
-    string collection = 3;
-    string query = 4; //This is a json representation of a mongodb query
+  string host = 1;
+  int32 port = 2;
+  string collection = 3;
+  string query = 4; //This is a json representation of a mongodb query
 }

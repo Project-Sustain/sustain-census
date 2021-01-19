@@ -10,6 +10,8 @@ import org.sustain.CensusRequest;
 import org.sustain.CensusResponse;
 import org.sustain.DatasetRequest;
 import org.sustain.DatasetResponse;
+import org.sustain.ModelRequest;
+import org.sustain.ModelResponse;
 import org.sustain.OsmRequest;
 import org.sustain.OsmResponse;
 import org.sustain.Predicate;
@@ -27,6 +29,7 @@ import org.sustain.census.CensusQueryHandler;
 import org.sustain.census.controller.SpatialQueryUtil;
 import org.sustain.openStreetMaps.OsmQueryHandler;
 import org.sustain.otherDatasets.DatasetQueryHandler;
+import org.sustain.querier.ModelQueryHandler;
 import org.sustain.svi.SviController;
 import org.sustain.util.Constants;
 
@@ -100,6 +103,11 @@ public class SustainServer {
         public void censusQuery(CensusRequest request, StreamObserver<CensusResponse> responseObserver) {
             CensusQueryHandler handler = new CensusQueryHandler(request, responseObserver);
             handler.handleCensusQuery();
+        }
+
+        @Override
+        public void modelQuery(ModelRequest request, StreamObserver<ModelResponse> responseObserver) {
+            ModelQueryHandler handler = new ModelQueryHandler(request, responseObserver);
         }
 
         @Override
