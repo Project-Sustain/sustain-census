@@ -29,17 +29,9 @@ public class SparkJob {
 
         // Launch the app
         try {
-            SparkAppHandle appHandle = launcher.startApplication(new SparkAppHandle.Listener() {
-                @Override
-                public void stateChanged(SparkAppHandle handle) {
-                    System.out.println("stateChanged invoked");
-                }
-
-                @Override
-                public void infoChanged(SparkAppHandle handle) {
-                    System.out.println("infoChanged invoked");
-                }
-            });
+            String[] appArgs = {};
+            JobLauncher jobLauncher = new JobLauncher();
+            SparkAppHandle appHandle = jobLauncher.launchJob("org.sustain.HelloWorld", appArgs);
 
             appHandle.wait();
         } catch (Exception e) {
