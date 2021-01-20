@@ -6,6 +6,7 @@
 build:
 	chmod +x gradlew
 	./gradlew installDist -x test
+	./gradlew installShadowDist
 
 build-with-tests:
 	chmod +x gradlew
