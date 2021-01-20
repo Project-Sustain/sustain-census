@@ -43,7 +43,7 @@ public class SparkJob {
 
             appHandle.wait();
         } catch (Exception e) {
-            System.out.println("Caught Exception.");
+            System.out.println("Caught Exception: " + e.getMessage());
         }
 
     }
