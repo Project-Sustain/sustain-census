@@ -33,7 +33,6 @@ public class SparkJob {
             JobLauncher jobLauncher = new JobLauncher();
             SparkAppHandle appHandle = jobLauncher.launchJob("org.sustain.HelloWorld", appArgs);
 
-            appHandle.wait();
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
             System.out.println("Stacktrace: " + e.getCause().toString());
