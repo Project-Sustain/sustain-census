@@ -32,18 +32,18 @@ public class SparkJob {
             SparkAppHandle appHandle = launcher.startApplication(new SparkAppHandle.Listener() {
                 @Override
                 public void stateChanged(SparkAppHandle handle) {
-                    log.info("stateChanged invoked");
+                    System.out.println("stateChanged invoked");
                 }
 
                 @Override
                 public void infoChanged(SparkAppHandle handle) {
-                    log.info("infoChanged invoked");
+                    System.out.println("infoChanged invoked");
                 }
             });
 
             appHandle.wait();
         } catch (Exception e) {
-            System.out.println("Caught Exception: " + e.getMessage());
+            System.out.println("Caught Exception: " + e.toString());
         }
 
     }
