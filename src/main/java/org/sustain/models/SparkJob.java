@@ -36,6 +36,7 @@ public class SparkJob {
             appHandle.wait();
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
+            System.out.println("Stacktrace: " + e.getCause().toString());
         }
 
     }
