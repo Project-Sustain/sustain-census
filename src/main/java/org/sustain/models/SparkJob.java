@@ -22,7 +22,8 @@ public class SparkJob {
 
         // Launch the app
         try {
-            SparkAppHandle appHandle = launcher.launchJob("org.sustain.HelloWorld", new String[]{});
+            String[] appArgs = {"LinearRegression", "future_heat", "sustaindb"};
+            SparkAppHandle appHandle = launcher.launchJob("org.sustain.SparkModel", appArgs);
 
             // Spin until app state is finished
             while (!appHandle.getState().isFinal()) {;}

@@ -22,14 +22,14 @@ public class JobLauncher implements SparkAppHandle.Listener {
     public SparkAppHandle launchJob(String mainClass, String[] args) throws Exception {
 
         String appResource = "build/libs/shadow.jar";
-        String sparkMaster = "spark://lattice-167:8079";
+        String sparkMaster = "spark://lattice-46:8079";
         String deployMode = "client";
 
         SparkAppHandle handle = new SparkLauncher()
                 .setAppResource(appResource).addAppArgs(args)
                 .setMainClass(mainClass)
                 .setMaster(sparkMaster)
-                .setDeployMode("client")
+                .setDeployMode(deployMode)
                 .redirectOutput(new File("spark-output"))
                 .redirectError(new File("spark-error"))
                 .startApplication(this);
