@@ -22,6 +22,10 @@ public class SparkJob {
         try {
             launcher.launchJob("org.sustain.HelloWorld", new String[]{});
 
+            while (true) {
+
+            }
+
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
             System.out.println("Stacktrace: " + e.getCause().toString());
