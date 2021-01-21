@@ -8,6 +8,7 @@ import org.apache.spark.scheduler.SparkListener;
 import java.time.Duration;
 
 import java.io.File;
+import java.util.Scanner;
 
 public class SparkJob {
 
@@ -23,7 +24,17 @@ public class SparkJob {
         try {
             SparkAppHandle appHandle = launcher.launchJob("org.sustain.HelloWorld", new String[]{});
 
+            // Spin until app state is finished
             while (!appHandle.getState().isFinal()) {;}
+
+            // Read the results from the spark-output file
+            Scanner resultScanner = new Scanner(new File("spark-output"));
+            while (resultScanner.hasNextLine()) {
+                String line = resultScanner.nextLine();
+                log.info(line);
+            }
+
+            resultScanner.close();
 
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
