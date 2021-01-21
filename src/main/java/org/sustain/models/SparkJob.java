@@ -16,22 +16,11 @@ public class SparkJob {
         System.out.println("Running an Apache Spark model...");
 
         // Create SparkLauncher for programmatically submitting a Spark job
-        SparkLauncher launcher = new SparkLauncher();
-
-        launcher.setMaster("spark://lattice-167:8079")
-                .setAppResource("build/libs/shadow.jar") // Specify user app jar path
-                .setMainClass("org.sustain.HelloWorld")
-                .setVerbose(true)
-                .setDeployMode("client")
-                .redirectOutput(new File("spark-output.txt"))
-                .redirectError(new File("spark-err.txt"));
-
+        JobLauncher launcher = new JobLauncher();
 
         // Launch the app
         try {
-            String[] appArgs = {};
-            JobLauncher jobLauncher = new JobLauncher();
-            SparkAppHandle appHandle = jobLauncher.launchJob("org.sustain.HelloWorld", appArgs);
+            launcher.launchJob("org.sustain.HelloWorld", new String[]{});
 
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
