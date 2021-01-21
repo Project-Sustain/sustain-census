@@ -22,7 +22,14 @@ public class SparkJob {
 
         // Launch the app
         try {
-            String[] appArgs = {"LinearRegression", "future_heat", "sustaindb"};
+            String[] appArgs = {
+                    "modelType=LinearRegression",
+                    "databaseName=sustaindb",
+                    "databaseHost=mongo://lattice-46:27017",
+                    "collection=future_heat",
+                    "sparkMaster=spark://lattice-167:8079"
+            };
+
             SparkAppHandle appHandle = launcher.launchJob("org.sustain.SparkModel", appArgs);
 
             // Spin until app state is finished
