@@ -95,7 +95,7 @@ object SparkModel {
 
       // Split input into testing set and training set:
       // 80% training, 20% testing, with random seed of 42
-      val Array(train, test): Array[Dataset[Row]] = gisDf.randomSplit(Array(0.8, 0.2), 42)
+      val Array(train, test): Array[Dataset[Row]] = mergedDf.randomSplit(Array(0.8, 0.2), 42)
 
       // Create a linear regression model object and fit it to the training set
       val linearRegression: LinearRegression = new LinearRegression()
