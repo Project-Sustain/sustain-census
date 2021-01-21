@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.spark.launcher.SparkAppHandle;
 import org.apache.spark.launcher.SparkLauncher;
 import org.apache.spark.scheduler.SparkListener;
+import java.time.Duration;
 
 import java.io.File;
 
@@ -22,7 +23,7 @@ public class SparkJob {
         try {
             SparkAppHandle appHandle = launcher.launchJob("org.sustain.HelloWorld", new String[]{});
 
-            appHandle.wait();
+            while (!appHandle.getState().isFinal()) {;}
 
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
