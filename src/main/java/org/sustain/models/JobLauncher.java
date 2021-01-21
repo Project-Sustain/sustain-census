@@ -24,14 +24,12 @@ public class JobLauncher implements SparkAppHandle.Listener {
         String sparkMaster = "spark://lattice-167:8079";
         String deployMode = "client";
 
-
-        java.util.logging.Logger logger = createLogger("spark-logger");
-
         SparkAppHandle handle = new SparkLauncher()
                 .setAppResource(appResource).addAppArgs(args)
                 .setMainClass(mainClass)
                 .setMaster(sparkMaster)
-                .redirectToLog("spark-logger")
+                .setDeployMode("client")
+                .redirectToLog(getClass().getName())
                 .startApplication(this);
 
         System.setProperty("java.util.logging.SimpleFormatter.format","%5$s%6$s%n");
