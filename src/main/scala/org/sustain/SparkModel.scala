@@ -88,7 +88,7 @@ object SparkModel {
       // Create a feature transformer that merges multiple columns into a vector column
       val assembler: VectorAssembler = new VectorAssembler()
         .setInputCols(Array("year"))
-        .setOutputCol("maxTemp")
+        .setOutputCol("features")
 
       // Merge multiple feature columns into a single vector column
       val mergedDf = assembler.transform(gisDf)
