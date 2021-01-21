@@ -25,7 +25,7 @@ public class SparkJob {
             String[] appArgs = {
                     "modelType=LinearRegression",
                     "databaseName=sustaindb",
-                    "databaseHost=mongo://lattice-46:27017",
+                    "databaseHost=mongodb://lattice-46:27017",
                     "collection=future_heat",
                     "sparkMaster=spark://lattice-167:8079"
             };
