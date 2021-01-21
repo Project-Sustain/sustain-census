@@ -20,11 +20,9 @@ public class SparkJob {
 
         // Launch the app
         try {
-            launcher.launchJob("org.sustain.HelloWorld", new String[]{});
+            SparkAppHandle appHandle = launcher.launchJob("org.sustain.HelloWorld", new String[]{});
 
-            while (true) {
-
-            }
+            appHandle.wait();
 
         } catch (Exception e) {
             System.out.println("Caught Exception: " + e.toString());
