@@ -33,7 +33,6 @@ public class SparkJob {
                 String line = resultScanner.nextLine();
                 log.info(line);
             }
-
             resultScanner.close();
 
         } catch (Exception e) {
