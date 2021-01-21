@@ -71,7 +71,7 @@ object SparkModel {
     // Only select relevant fields
     val df1: DataFrame = df.select("GISJOIN", "_id", "temp", "year")
 
-    val gisJoins: Dataset[Row] = df.select("GISJOIN").distinct().limit(100)
+    val gisJoins: Dataset[Row] = df.select("GISJOIN").distinct().limit(10)
 
     for (gisJoinRow: Row <- gisJoins.collect()) {
       val gisJoin: String = gisJoinRow.getString(0)
