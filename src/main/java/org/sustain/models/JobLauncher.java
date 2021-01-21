@@ -22,7 +22,6 @@ public class JobLauncher implements SparkAppHandle.Listener {
                 .setAppResource(appResource).addAppArgs(args)
                 .setMainClass(mainClass)
                 .setMaster(sparkMaster)
-                .setDeployMode(deployMode)
                 .redirectToLog(getClass().getName())
                 .startApplication(this);
 
