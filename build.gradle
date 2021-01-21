@@ -49,11 +49,14 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
 
-    // --- Scala source dependencies ---
+    // --- Scala/Spark source dependencies ---
     implementation 'org.scala-lang:scala-library:2.12.12'
     implementation 'org.scala-lang.modules:scala-xml_2.12:1.2.0'
     implementation 'org.apache.spark:spark-core_2.12:3.0.0'
-    implementation 'org.apache.spark:spark-launcher_2.12:3.0.0'
+    implementation 'org.apache.spark:spark-sql_2.12:3.0.0'
+    implementation 'org.apache.spark:spark-mllib_2.12:3.0.0'
+    implementation 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.0'
+
 }
 
 // Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
