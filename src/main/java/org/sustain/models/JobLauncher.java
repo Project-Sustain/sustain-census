@@ -34,6 +34,8 @@ public class JobLauncher implements SparkAppHandle.Listener {
                 .redirectToLog("spark-logger")
                 .startApplication(this);
 
+        System.setProperty("java.util.logging.SimpleFormatter.format","%5$s%6$s%n");
+
         log.info("Launched [" + mainClass + "] from [" + appResource + "] State [" + handle.getState() + "]");
 
         return handle;
