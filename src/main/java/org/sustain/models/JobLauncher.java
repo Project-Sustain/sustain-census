@@ -6,6 +6,7 @@ import org.apache.spark.launcher.SparkAppHandle;
 import org.apache.spark.launcher.SparkLauncher;
 import org.apache.spark.scheduler.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
@@ -29,7 +30,8 @@ public class JobLauncher implements SparkAppHandle.Listener {
                 .setMainClass(mainClass)
                 .setMaster(sparkMaster)
                 .setDeployMode("client")
-                .redirectToLog(getClass().getName())
+                .redirectOutput(new File("spark-output"))
+                .redirectError(new File("spark-error"))
                 .startApplication(this);
 
         System.setProperty("java.util.logging.SimpleFormatter.format","%5$s%6$s%n");
