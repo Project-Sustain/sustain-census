@@ -87,6 +87,7 @@ test {
 
 // Output to build/libs/shadow.jar
 shadowJar {
+    zip64 true
     archiveBaseName.set('shadow')
     archiveClassifier.set('')
     archiveVersion.set('')
