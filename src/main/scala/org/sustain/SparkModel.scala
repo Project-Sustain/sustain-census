@@ -78,14 +78,17 @@ object SparkModel {
 
       // Discard all rows not for this GISJOIN, group by the year, selecting the maximum temp among the temps for that year.
       // Finally, sort by the years, so it's in chronological order.
-      val gisDf: DataFrame = df.filter($"GISJOIN" === gisJoin).groupBy("year").max("temp").sort("year")
-
+      val gisDf: DataFrame = df.filter($"GISJOIN" === gisJoin)
+        .groupBy("year")
+        .max("temp")
+        .sort("year")
+        .withColumnRenamed("max(temp)", "label")
 
       // Make a linear model for the max temps
       // Create a feature transformer that merges multiple columns into a vector column
       val assembler: VectorAssembler = new VectorAssembler()
         .setInputCols(Array("year"))
-        .setOutputCol("max(temp)")
+        .setOutputCol("maxTemp")
 
       // Merge multiple feature columns into a single vector column
       val mergedDf = assembler.transform(gisDf)
