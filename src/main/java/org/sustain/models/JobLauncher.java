@@ -6,6 +6,12 @@ import org.apache.spark.launcher.SparkAppHandle;
 import org.apache.spark.launcher.SparkLauncher;
 import org.apache.spark.scheduler.*;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
+
 
 public class JobLauncher implements SparkAppHandle.Listener {
 
@@ -18,11 +24,14 @@ public class JobLauncher implements SparkAppHandle.Listener {
         String sparkMaster = "spark://lattice-167:8079";
         String deployMode = "client";
 
+
+        java.util.logging.Logger logger = createLogger("spark-logger");
+
         SparkAppHandle handle = new SparkLauncher()
                 .setAppResource(appResource).addAppArgs(args)
                 .setMainClass(mainClass)
                 .setMaster(sparkMaster)
-                .redirectToLog(getClass().getName())
+                .redirectToLog("spark-logger")
                 .startApplication(this);
 
         log.info("Launched [" + mainClass + "] from [" + appResource + "] State [" + handle.getState() + "]");
@@ -48,5 +57,22 @@ public class JobLauncher implements SparkAppHandle.Listener {
 
         log.info("Spark App Id [" + handle.getAppId() + "] State Changed. State [" + handle.getState() + "]");
 
+    }
+
+    private java.util.logging.Logger createLogger(String appName) throws IOException {
+        final java.util.logging.Logger logger = getRootLogger();
+        final FileHandler handler = new FileHandler("./" + appName + "-%u-%g.log", 10_000_000, 5, true);
+        handler.setFormatter(new SimpleFormatter());
+        logger.addHandler(handler);
+        logger.setLevel(Level.INFO);
+        return logger;
+    }
+
+    private java.util.logging.Logger getRootLogger() {
+        final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(java.util.logging.Logger.GLOBAL_LOGGER_NAME);
+        Arrays.stream(logger.getHandlers()).forEach(logger::removeHandler);
+        //Without this the logging will go to the Console and to a file.
+        logger.setUseParentHandlers(false);
+        return logger;
     }
 }
