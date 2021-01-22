@@ -117,7 +117,7 @@ object SparkModel {
       //println(s"\tRMSE: ${trainingSummary.rootMeanSquaredError}")
       //println(s"\tR2: ${trainingSummary.r2}")
 
-      println(s">>> Results: {${gisJoin},${lrModel.coefficients},${lrModel.intercept}${trainingSummary.rootMeanSquaredError}}")
+      println(s">>> Results: {${gisJoin},${lrModel.coefficients},${lrModel.intercept},${trainingSummary.rootMeanSquaredError}}")
 
       // Use the model on the testing set, and evaluate results
       //val lrPredictions: DataFrame = lrModel.transform(test)
