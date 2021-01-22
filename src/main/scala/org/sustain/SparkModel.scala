@@ -71,7 +71,7 @@ object SparkModel {
     // Only select relevant fields
     val df1: DataFrame = df.select("GISJOIN", "_id", "temp", "year")
 
-    val gisJoins: Dataset[Row] = df.select("GISJOIN").distinct().limit(10)
+    val gisJoins: Dataset[Row] = df.select("GISJOIN").distinct().limit(1)
 
     for (gisJoinRow: Row <- gisJoins.collect()) {
       val gisJoin: String = gisJoinRow.getString(0)
@@ -107,20 +107,22 @@ object SparkModel {
 
       // Print the coefficients and intercept for linear regression
 
-      println(s">>> GISJOIN ${gisJoin} RESULTS:")
-      println(s">>> Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
+
+      //println(s"\tCoefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
 
       val trainingSummary = lrModel.summary
-      println(s"\tnumIterations: ${trainingSummary.totalIterations}")
-      println(s"\tobjectiveHistory: [${trainingSummary.objectiveHistory.mkString(",")}]")
-      trainingSummary.residuals.show()
-      println(s"\tRMSE: ${trainingSummary.rootMeanSquaredError}")
-      println(s"\tr2: ${trainingSummary.r2}")
+      //println(s"\tTotal Iterations: ${trainingSummary.totalIterations}")
+      //println(s"\tObjective History: [${trainingSummary.objectiveHistory.mkString(",")}]")
+      //trainingSummary.residuals.show()
+      //println(s"\tRMSE: ${trainingSummary.rootMeanSquaredError}")
+      //println(s"\tR2: ${trainingSummary.r2}")
+
+      println(s">>> Results: {${gisJoin},${lrModel.coefficients},${lrModel.intercept}${trainingSummary.rootMeanSquaredError}}")
 
       // Use the model on the testing set, and evaluate results
-      val lrPredictions: DataFrame = lrModel.transform(test)
-      val evaluator: RegressionEvaluator = new RegressionEvaluator().setMetricName("rmse")
-      println(s"\tTest RMSE: ${evaluator.evaluate(lrPredictions)}")
+      //val lrPredictions: DataFrame = lrModel.transform(test)
+      //val evaluator: RegressionEvaluator = new RegressionEvaluator().setMetricName("rmse")
+      //println(s"\tTest RMSE: ${evaluator.evaluate(lrPredictions)}")
     }
 
     // Group by GISJOIN and year, selecting the max of year
