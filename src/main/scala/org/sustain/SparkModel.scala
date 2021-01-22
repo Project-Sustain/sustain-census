@@ -96,11 +96,7 @@ object SparkModel {
         .setOutputCol("features")
 
       // Merge multiple feature columns into a single vector column
-      val mergedDf = assembler.transform(gisDf)
-
-      // Split input into testing set and training set:
-      // 80% training, 20% testing, with random seed of 42
-      val Array(train, test): Array[Dataset[Row]] = mergedDf.randomSplit(Array(0.8, 0.2), 42)
+      val mergedDf: DataFrame = assembler.transform(gisDf)
 
       // Create a linear regression model object and fit it to the training set
       val linearRegression: LinearRegression = new LinearRegression()
@@ -108,7 +104,7 @@ object SparkModel {
         .setRegParam(0.3)
         .setElasticNetParam(0.8)
 
-      val lrModel: LinearRegressionModel = linearRegression.fit(train)
+      val lrModel: LinearRegressionModel = linearRegression.fit(mergedDf)
 
       // Print the coefficients and intercept for linear regression
 
