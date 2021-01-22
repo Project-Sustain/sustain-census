@@ -15,6 +15,8 @@
 
 package org.sustain
 
+import org.sparkproject.dmg.pmml.support_vector_machine.Coefficient
+
 // Main entrypoint for the Spark Model that gets submitted to the cluster.
 object SparkModel {
 
@@ -23,6 +25,7 @@ object SparkModel {
     "databaseName" -> "",
     "databaseHost" -> "",
     "collection" -> "",
+    "gisJoins" -> "",
     "query" -> "",
     "sparkMaster" -> ""
   )
@@ -71,10 +74,13 @@ object SparkModel {
     // Only select relevant fields
     val df1: DataFrame = df.select("GISJOIN", "_id", "temp", "year")
 
-    val gisJoins: Dataset[Row] = df.select("GISJOIN").distinct().limit(1)
 
-    for (gisJoinRow: Row <- gisJoins.collect()) {
-      val gisJoin: String = gisJoinRow.getString(0)
+    println(s">>> Columns: GISJOIN,coefficients,intercept,rmse,predictedMax2021")
+    val gisJoins: Array[String] = configuration("gisJoins").split(',')
+
+
+
+    for (gisJoin: String <- gisJoins) {
 
       // Discard all rows not for this GISJOIN, group by the year, selecting the maximum temp among the temps for that year.
       // Finally, sort by the years, so it's in chronological order.
@@ -117,7 +123,12 @@ object SparkModel {
       //println(s"\tRMSE: ${trainingSummary.rootMeanSquaredError}")
       //println(s"\tR2: ${trainingSummary.r2}")
 
-      println(s">>> Results: {${gisJoin},${lrModel.coefficients},${lrModel.intercept},${trainingSummary.rootMeanSquaredError}}")
+      println(">>> Results: {" +
+        s"${gisJoin}," +
+        s"${lrModel.coefficients}," +
+        s"${lrModel.intercept}," +
+        s"${trainingSummary.rootMeanSquaredError}" +
+        s"${predictMaxTemperature(2021, lrModel.coefficients(0), ${lrModel.intercept})}}")
 
       // Use the model on the testing set, and evaluate results
       //val lrPredictions: DataFrame = lrModel.transform(test)
@@ -176,6 +187,11 @@ object SparkModel {
           }
       }
     }
+  }
+
+  // Predict a year given a linear model (y = mx + b)
+  def predictMaxTemperature(year: Int, coefficient: Double, intercept: Double): Double = {
+    return (year * coefficient) + intercept
   }
 
 }

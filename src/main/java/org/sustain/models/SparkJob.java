@@ -27,7 +27,8 @@ public class SparkJob {
                     "databaseName=sustaindb",
                     "databaseHost=mongodb://lattice-46:27017",
                     "collection=future_heat",
-                    "sparkMaster=spark://lattice-167:8079"
+                    "sparkMaster=spark://lattice-167:8079",
+                    "gisJoins=G1201050,G4804550,G4500890"
             };
 
             SparkAppHandle appHandle = launcher.launchJob("org.sustain.SparkModel", appArgs);
