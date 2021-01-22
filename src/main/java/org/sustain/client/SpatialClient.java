@@ -23,7 +23,7 @@ public class SpatialClient {
         sustainBlockingStub = SustainGrpc.newBlockingStub(channel);
     }
 
-    public static void main(String[] args) {\
+    public static void main(String[] args) {
         logEnvironment();
         SustainGrpc.SustainBlockingStub sustainBlockingStub = new SpatialClient().getSustainBlockingStub();
         exampleLinearRegressionQuery(sustainBlockingStub);
