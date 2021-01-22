@@ -60,7 +60,7 @@ public class SparkJob {
         }
         appArgs.add(gisJoins);
 
-        String[] appArgsArray = (String[]) appArgs.toArray();
+        String[] appArgsArray = appArgs.toArray(new String[appArgs.size()]);
         JobLauncher launcher = new JobLauncher();
 
         String jsonResults = "";
