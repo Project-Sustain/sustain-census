@@ -25,6 +25,8 @@ object SparkModel {
     "databaseName" -> "",
     "databaseHost" -> "",
     "collection" -> "",
+    "feature" -> "",
+    "label" -> "",
     "gisJoins" -> "",
     "query" -> "",
     "sparkMaster" -> ""
