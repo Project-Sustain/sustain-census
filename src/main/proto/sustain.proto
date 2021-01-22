@@ -27,6 +27,16 @@ service Sustain{
   rpc ExecuteTargetedCensusQuery (TargetedCensusRequest) returns (stream TargetedCensusResponse) {}
 
   rpc CompoundQuery (CompoundRequest) returns (stream CompoundResponse) {}
+
+  rpc ModelQuery (ModelRequest) returns (ModelResponse) {}
+}
+
+message ModelRequest {
+  string request = 1;
+}
+
+message ModelResponse {
+  string results = 1;
 }
 
 message SviRequest {
