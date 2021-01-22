@@ -169,6 +169,9 @@ public class SpatialClient {
                 "       \"G4500890\"\n" +
                 "   ]\n" +
                 "}";
+
+        log.info("Making Linear Regression gRPC Request:\n" + exampleRequest);
+
         LinearRegressionRequest request = LinearRegressionRequest.newBuilder()
                 .setRequest(exampleRequest)
                 .build();
