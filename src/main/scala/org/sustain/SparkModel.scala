@@ -77,10 +77,9 @@ object SparkModel {
 
     println(s">>> Columns: GISJOIN,coefficients,intercept,rmse,predictedMax2021")
     val gisJoins: Array[String] = configuration("gisJoins").split(',')
-
-
-
     for (gisJoin: String <- gisJoins) {
+
+      val t0 = System.nanoTime()
 
       // Discard all rows not for this GISJOIN, group by the year, selecting the maximum temp among the temps for that year.
       // Finally, sort by the years, so it's in chronological order.
@@ -134,6 +133,9 @@ object SparkModel {
       //val lrPredictions: DataFrame = lrModel.transform(test)
       //val evaluator: RegressionEvaluator = new RegressionEvaluator().setMetricName("rmse")
       //println(s"\tTest RMSE: ${evaluator.evaluate(lrPredictions)}")
+
+      val t1 = System.nanoTime()
+      println("Elapsed time: " + (t1 - t0)/1000000000 + "seconds")
     }
 
     // Group by GISJOIN and year, selecting the max of year
@@ -194,4 +196,11 @@ object SparkModel {
     return (year * coefficient) + intercept
   }
 
+  def time[R](block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block    // call-by-name
+    val t1 = System.nanoTime()
+    println("Elapsed time: " + (t1 - t0) + "ns")
+    result
+  }
 }
