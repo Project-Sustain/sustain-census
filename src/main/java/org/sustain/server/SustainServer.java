@@ -6,24 +6,11 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sustain.CensusRequest;
-import org.sustain.CensusResponse;
-import org.sustain.CompoundRequest;
-import org.sustain.CompoundResponse;
-import org.sustain.DatasetRequest;
-import org.sustain.DatasetResponse;
-import org.sustain.ModelRequest;
-import org.sustain.ModelResponse;
-import org.sustain.OsmRequest;
-import org.sustain.OsmResponse;
-import org.sustain.Predicate;
-import org.sustain.SpatialOp;
-import org.sustain.SustainGrpc;
-import org.sustain.SviRequest;
-import org.sustain.SviResponse;
+import org.sustain.*;
 import org.sustain.census.CensusQueryHandler;
 import org.sustain.census.controller.SpatialQueryUtil;
 import org.sustain.dataModeling.ModelQueryHandler;
+import org.sustain.modeling.LinearRegressionQueryHandler;
 import org.sustain.openStreetMaps.OsmQueryHandler;
 import org.sustain.otherDatasets.DatasetQueryHandler;
 import org.sustain.querier.CompoundQueryHandler;
@@ -99,6 +86,12 @@ public class SustainServer {
         @Override
         public void modelQuery(ModelRequest request, StreamObserver<ModelResponse> responseObserver) {
             ModelQueryHandler handler = new ModelQueryHandler(request, responseObserver);
+        }
+
+        @Override
+        public void linearRegressionQuery(LinearRegressionRequest request, StreamObserver<LinearRegressionResponse> responseObserver) {
+            LinearRegressionQueryHandler handler = new LinearRegressionQueryHandler(request, responseObserver);
+            handler.handleQuery();
         }
 
         @Override

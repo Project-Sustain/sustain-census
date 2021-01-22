@@ -1,10 +1,9 @@
-package org.sustain.models;
+package org.sustain.modeling;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.spark.launcher.SparkAppHandle;
 import org.apache.spark.launcher.SparkLauncher;
-import org.apache.spark.scheduler.*;
 
 import java.io.File;
 import java.io.IOException;

@@ -29,6 +29,8 @@ service Sustain{
   rpc CompoundQuery (CompoundRequest) returns (stream CompoundResponse) {}
 
   rpc ModelQuery (ModelRequest) returns (ModelResponse) {}
+
+  rpc LinearRegressionQuery (LinearRegressionRequest) returns (LinearRegressionResponse) {}
 }
 
 message ModelRequest {
@@ -36,6 +38,14 @@ message ModelRequest {
 }
 
 message ModelResponse {
+  string results = 1;
+}
+
+message LinearRegressionRequest {
+  string request = 1;
+}
+
+message LinearRegressionResponse {
   string results = 1;
 }
 

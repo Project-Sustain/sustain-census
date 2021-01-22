@@ -125,7 +125,7 @@ task censusClient(type: CreateStartScripts) {
 }
 
 task sparkJob(type: CreateStartScripts) {
-    mainClassName = 'org.sustain.models.SparkJob'
+    mainClassName = 'org.sustain.modeling.SparkJob'
     applicationName = 'spark-job'
     outputDir = new File(project.buildDir, 'tmp')
     classpath = startScripts.classpath
