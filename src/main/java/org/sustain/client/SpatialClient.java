@@ -177,7 +177,7 @@ public class SpatialClient {
                 .build();
 
         LinearRegressionResponse response = censusBlockingStub.linearRegressionQuery(request);
-        log.info(response.getResults());
+        log.info("Received Linear Regression gRPC Response:\n" + response.getResults());
     }
 
     public SustainGrpc.SustainBlockingStub getSustainBlockingStub() {
