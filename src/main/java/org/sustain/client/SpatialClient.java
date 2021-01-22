@@ -25,7 +25,7 @@ public class SpatialClient {
 
     public static void main(String[] args) {
         SustainGrpc.SustainBlockingStub sustainBlockingStub = new SpatialClient().getSustainBlockingStub();
-
+        logEnvironment();
         exampleLinearRegressionQuery(sustainBlockingStub);
         //exampleSpatialQuery(sustainBlockingStub, geoJson);
         //exampleTargetedQuery(sustainBlockingStub, geoJson);
@@ -34,6 +34,19 @@ public class SpatialClient {
         //exampleCensusQuery(CensusFeature.TotalPopulation, CensusResolution.County, sustainBlockingStub,
         //        SampleGeoJson.COLORADO);
         //exampleSviQuery(SampleGeoJson.COLORADO, SpatialOp.GeoIntersects, sustainBlockingStub);
+    }
+
+    // Logs the environment variables that the server was started with.
+    public static void logEnvironment() {
+        log.info("--- Server Environment ---");
+        log.info("SERVER_HOST: " + Constants.Server.HOST);
+        log.info("SERVER_PORT: " + Constants.Server.PORT);
+        log.info("--- Database Environment ---");
+        log.info("DB_HOST: " + Constants.DB.HOST);
+        log.info("DB_PORT: " + Constants.DB.PORT);
+        log.info("DB_NAME: " + Constants.DB.NAME);
+        log.info("DB_USERNAME: " + Constants.DB.USERNAME);
+        log.info("DB_PASSWORD: " + Constants.DB.PASSWORD);
     }
 
     private static void exampleDatasetQuery(DatasetRequest.Dataset dataset,
