@@ -122,7 +122,7 @@ object SparkModel {
         s"${gisJoin}," +
         s"${lrModel.coefficients}," +
         s"${lrModel.intercept}," +
-        s"${trainingSummary.rootMeanSquaredError}" +
+        s"${trainingSummary.rootMeanSquaredError}," +
         s"${predictMaxTemperature(2021, lrModel.coefficients(0), lrModel.intercept)})}}")
 
       // Use the model on the testing set, and evaluate results
