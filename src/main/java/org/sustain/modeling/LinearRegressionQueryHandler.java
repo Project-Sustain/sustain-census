@@ -21,6 +21,9 @@ public class LinearRegressionQueryHandler {
         SparkJob sparkJob = new SparkJob();
         String jsonResponse = sparkJob.createSparkJob(request.getRequest());
         System.out.println(jsonResponse);
+
+        responseObserver.onNext(LinearRegressionResponse.newBuilder().setResults(jsonResponse).build());
+        responseObserver.onCompleted();
     }
 
 
