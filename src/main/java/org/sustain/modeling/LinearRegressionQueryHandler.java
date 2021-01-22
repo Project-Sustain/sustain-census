@@ -5,10 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sustain.LinearRegressionRequest;
 import org.sustain.LinearRegressionResponse;
-import org.sustain.dataModeling.ModelQueryHandler;
 
 public class LinearRegressionQueryHandler {
-    private static final Logger log = LogManager.getLogger(ModelQueryHandler.class);
+    private static final Logger log = LogManager.getLogger(LinearRegressionQueryHandler.class);
     private final LinearRegressionRequest request;
     private final StreamObserver<LinearRegressionResponse> responseObserver;
 
@@ -19,7 +18,9 @@ public class LinearRegressionQueryHandler {
     }
 
     public void handleQuery() {
-        System.out.println(request.getRequest());
+        SparkJob sparkJob = new SparkJob();
+        String jsonResponse = sparkJob.createSparkJob(request.getRequest());
+        System.out.println(jsonResponse);
     }
 
 

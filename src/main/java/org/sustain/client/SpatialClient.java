@@ -4,22 +4,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sustain.CensusFeature;
-import org.sustain.CensusRequest;
-import org.sustain.CensusResolution;
-import org.sustain.CensusResponse;
-import org.sustain.DatasetRequest;
-import org.sustain.DatasetResponse;
-import org.sustain.Decade;
-import org.sustain.OsmRequest;
-import org.sustain.OsmResponse;
-import org.sustain.Predicate;
-import org.sustain.SpatialOp;
-import org.sustain.SustainGrpc;
-import org.sustain.SviRequest;
-import org.sustain.SviResponse;
-import org.sustain.TargetedCensusRequest;
-import org.sustain.TargetedCensusResponse;
+import org.sustain.*;
 import org.sustain.util.Constants;
 import org.sustain.util.SampleGeoJson;
 
@@ -31,7 +16,7 @@ public class SpatialClient {
     private SustainGrpc.SustainBlockingStub sustainBlockingStub;
 
     public SpatialClient() {
-        String target = Constants.Server.HOST + ":" + 30001;
+        String target = Constants.Server.HOST + ":" + 50051;
         log.info("Target: " + target);
 
         ManagedChannel channel = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
@@ -41,10 +26,11 @@ public class SpatialClient {
     public static void main(String[] args) {
         SustainGrpc.SustainBlockingStub sustainBlockingStub = new SpatialClient().getSustainBlockingStub();
 
+        exampleLinearRegressionQuery(sustainBlockingStub);
         //exampleSpatialQuery(sustainBlockingStub, geoJson);
         //exampleTargetedQuery(sustainBlockingStub, geoJson);
         //exampleOsmQuery(sustainBlockingStub, SampleGeoJson.FORT_COLLINS);
-        exampleDatasetQuery(DatasetRequest.Dataset.FIRE_STATIONS, sustainBlockingStub, SampleGeoJson.MULTIPLE_STATES);
+        //exampleDatasetQuery(DatasetRequest.Dataset.FIRE_STATIONS, sustainBlockingStub, SampleGeoJson.MULTIPLE_STATES);
         //exampleCensusQuery(CensusFeature.TotalPopulation, CensusResolution.County, sustainBlockingStub,
         //        SampleGeoJson.COLORADO);
         //exampleSviQuery(SampleGeoJson.COLORADO, SpatialOp.GeoIntersects, sustainBlockingStub);
@@ -157,6 +143,25 @@ public class SpatialClient {
             log.info("geoJson: " + responseGeoJson);
             System.out.println();
         }
+    }
+
+    private static void exampleLinearRegressionQuery(SustainGrpc.SustainBlockingStub censusBlockingStub) {
+        String exampleRequest = "{\n" +
+                "   \"collection\": \"future_heat\",\n" +
+                "   \"feature\": \"year\",\n" +
+                "   \"label\": \"temp\",\n" +
+                "   \"gisJoins\": [\n" +
+                "       \"G1201050\",\n" +
+                "       \"G4804550\",\n" +
+                "       \"G4500890\"\n" +
+                "   ]\n" +
+                "}";
+        LinearRegressionRequest request = LinearRegressionRequest.newBuilder()
+                .setRequest(exampleRequest)
+                .build();
+
+        LinearRegressionResponse response = censusBlockingStub.linearRegressionQuery(request);
+        log.info(response.getResults());
     }
 
     public SustainGrpc.SustainBlockingStub getSustainBlockingStub() {

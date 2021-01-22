@@ -2,10 +2,19 @@
 # Author: Menuka Warushavithana
 # --------------------------------------------------------------------
 
+.EXPORT_ALL_VARIABLES:
+
+SERVER_HOST = "lattice-167"
+DB_NAME = "sustaindb"
+DB_USERNAME = ""
+DB_PASSWORD = ""
+DB_HOST = "lattice-46"
+DB_PORT = 27017
+
 .PHONY: build
 build:
 	chmod +x gradlew
-	./gradlew installDist -x test
+	./gradlew installDist
 	./gradlew installShadowDist
 
 build-with-tests:
@@ -13,26 +22,17 @@ build-with-tests:
 	./gradlew install
 
 run-sustain-server:
-	export DB_NAME="sustaindb"
-	export DB_USERNAME=""
-	export DB_PASSWORD=""
-	export DB_HOST="lattice-167"
-	export DB_PORT=27017
-	./gradlew install -x test
-	sh ./build/install/sustain-census-grpc/bin/sustain-server
+	./gradlew installDist
+	./build/install/sustain-census-grpc/bin/sustain-server
 
 test:
 	./gradlew test
 
 run-spatial-client:
-	export DB_NAME="sustaindb"
-	export DB_HOST="lattice-167"
-	export DB_PORT=27017
-	export SERVER_HOST="lattice-167"
-	sh ./build/install/sustain-census-grpc/bin/spatial-client
+	./build/install/sustain-census-grpc/bin/spatial-client
 
 run-spark-job:
-	sh ./build/install/sustain-census-grpc/bin/spark-job
+	./build/install/sustain-census-grpc/bin/spark-job
 
 proto:
 	./gradlew generateProto
