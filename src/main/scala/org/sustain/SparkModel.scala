@@ -75,7 +75,7 @@ object SparkModel {
     val df1: DataFrame = df.select("GISJOIN", "_id", "temp", "year")
 
 
-    println(s">>> Columns: GISJOIN,coefficients,intercept,rmse,predictedMax2021")
+    println(s">>> Columns: GISJOIN,coefficient,intercept,rmse,predictedMax2021")
     val gisJoins: Array[String] = configuration("gisJoins").split(',')
     for (gisJoin: String <- gisJoins) {
 
@@ -120,7 +120,7 @@ object SparkModel {
 
       println(">>> Results: {" +
         s"${gisJoin}," +
-        s"${lrModel.coefficients}," +
+        s"${lrModel.coefficients(0)}," +
         s"${lrModel.intercept}," +
         s"${trainingSummary.rootMeanSquaredError}," +
         s"${predictMaxTemperature(2021, lrModel.coefficients(0), lrModel.intercept)}}")
