@@ -49,7 +49,7 @@ public class SparkJob {
         appArgs.add("collection=" + lr.collection);
         appArgs.add("feature=" + lr.feature);
         appArgs.add("label=" + lr.label);
-        appArgs.add("sparkMaster=lattice-167");
+        appArgs.add("sparkMaster=spark://lattice-167:8079");
 
         String gisJoins = "gisJoins=";
         for (int i = 0; i < lr.gisJoins.size(); i++) {
