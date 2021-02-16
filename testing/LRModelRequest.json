@@ -1,27 +1,29 @@
 {
-  "type": "LINEAR_REGRESSION",
-  "collections": [
-    {
-      "name": "macav2",
-      "label": "max_max_air_temperature",
-      "features": [
-        "timestamp"
-      ]
-    }
-  ],
-  "linearRegressionRequest": {
-    "gisJoins": [
-      "G0100290"
+  "json": {
+    "type": "LINEAR_REGRESSION",
+    "collections": [
+      {
+        "name": "macav2",
+        "label": "max_max_air_temperature",
+        "features": [
+          "timestamp"
+        ]
+      }
     ],
-    "loss": "squaredError",
-    "solver": "auto",
-    "aggregationDepth": 2,
-    "maxIterations": 10,
-    "elasticNetParam": 0.0,
-    "epsilon": 1.35,
-    "regularizationParam": 0.5,
-    "convergenceTolerance": 0.000001,
-    "fitIntercept": true,
-    "setStandardization": true
+    "linearRegressionRequest": {
+      "gisJoins": [
+        "G0100290"
+      ],
+      "loss": "squaredError",
+      "solver": "auto",
+      "aggregationDepth": 2,
+      "maxIterations": 10,
+      "elasticNetParam": 0.0,
+      "epsilon": 1.35,
+      "regularizationParam": 0.5,
+      "convergenceTolerance": 0.000001,
+      "fitIntercept": true,
+      "setStandardization": true
+    }
   }
 }
