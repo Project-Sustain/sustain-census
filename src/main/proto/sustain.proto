@@ -73,6 +73,7 @@ enum ModelType {
     LATENT_DIRICHLET_ALLOCATION = 5;
     R_FOREST_REGRESSION = 6;
     G_BOOST_REGRESSION = 7;
+    KNN_SEARCH = 8;
 }
 
 message ModelRequest {
@@ -85,6 +86,7 @@ message ModelRequest {
   LatentDirichletAllocationRequest latentDirichletAllocationRequest = 7;
   RForestRegressionRequest rForestRegressionRequest = 8;
   GBoostRegressionRequest gBoostRegressionRequest = 9;
+  KNNSearchRequest kNNSearchRequest = 10;
 }
 
 message Collection {
@@ -101,6 +103,7 @@ message ModelResponse {
   BisectingKMeansResponse bisectingKMeansResponse = 5;
   GaussianMixtureResponse gaussianMixtureResponse = 6;
   LatentDirichletAllocationResponse latentDirichletAllocationResponse = 7;
+  KNNSearchResponse kNNSearchResponse = 8;
 }
 
 // Clustering
@@ -284,4 +287,27 @@ message DirectRequest {
 
 message DirectResponse {
   string data = 1;
+}
+
+message KNNSearchRequest{
+  int32 kValue = 1;
+  Dictionary queryMap = 2;
+  CensusResolution resolution = 3;
+  DistanceMetric distanceMetric = 4;
+  int32 pForMinkowski = 5;  //set this to -1 when DistanceMetric is anything unless Minkowski
+}
+
+message Dictionary {
+    map<string, int32> pairs = 1;
+}
+
+message KNNSearchResponse{
+  string gisJoin = 1;
+  int32 rank = 2;
+}
+
+enum DistanceMetric {
+  Euclidean = 0;
+  Cosine = 1;
+  Minkowski = 2;
 }

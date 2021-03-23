@@ -151,6 +151,12 @@ public class SustainServerTest {
 
     @Tag("slow")
     @Test
+    void testKNNSearch() {
+        executeJsonModelRequest("requests/kNN_search_county_stats_request.json");
+    }
+
+    @Tag("slow")
+    @Test
     public void testCovidSlidingWindowQuery() {
         String resourceName = "requests/covid_sliding_window_request.json";
         try {

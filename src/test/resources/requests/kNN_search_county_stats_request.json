@@ -1,0 +1,17 @@
+{
+  "type": "KNN_SEARCH",
+  "collections": [
+    {
+      "name": "county_stats",
+      "features": [
+        "total_population",
+        "median_household_income"
+      ]
+    }
+  ],
+  "kMeansClusteringRequest": {
+    "clusterCount": 10,
+    "maxIterations": 100,
+    "resolution": "County"
+  }
+}

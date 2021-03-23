@@ -17,16 +17,9 @@ import org.sustain.SlidingWindowRequest;
 import org.sustain.SlidingWindowResponse;
 import org.sustain.SparkManager;
 import org.sustain.SustainGrpc;
-import org.sustain.handlers.ClusteringQueryHandler;
-import org.sustain.handlers.CompoundQueryHandler;
-import org.sustain.handlers.CountQueryHandler;
+import org.sustain.handlers.*;
 import org.sustain.handlers.GrpcHandler;
 import org.sustain.handlers.RegressionQueryHandler;
-import org.sustain.handlers.DirectQueryHandler;
-import org.sustain.handlers.EnsembleQueryHandler;
-import org.sustain.handlers.GrpcHandler;
-import org.sustain.handlers.RegressionQueryHandler;
-import org.sustain.handlers.SlidingWindowQueryHandler;
 
 public class SustainService extends SustainGrpc.SustainImplBase {
     private static final Logger log = LogManager.getLogger(SustainService.class);
@@ -77,6 +70,10 @@ public class SustainService extends SustainGrpc.SustainImplBase {
             case LATENT_DIRICHLET_ALLOCATION:
                 log.info("Received a Latent Dirichlet Allocation Request");
                 handler = new ClusteringQueryHandler(request, responseObserver, this.sparkManager);
+                break;
+            case KNN_SEARCH:
+                log.info("Received a Latent Dirichlet Allocation Request");
+                handler = new KNNSearchQueryHandler(request, responseObserver, this.sparkManager);
                 break;
             default:
                 responseObserver.onError(new Exception("Invalid Model Type"));
