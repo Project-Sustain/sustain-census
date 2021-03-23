@@ -5,13 +5,19 @@
       "name": "county_stats",
       "features": [
         "total_population",
-        "median_household_income"
+        "no_of_hospitals",
+        "no_of_fire_stations"
       ]
     }
   ],
-  "kMeansClusteringRequest": {
-    "clusterCount": 10,
-    "maxIterations": 100,
-    "resolution": "County"
+  "KNNSearchRequest": {
+    "kValue": 10,
+    "queryMap": {
+      "total_population": 14000,
+      "no_of_hospitals": 1,
+      "no_of_fire_stations" : 0
+    },
+    "resolution": "County",
+    "distanceMetric" : "Euclidean"
   }
 }
