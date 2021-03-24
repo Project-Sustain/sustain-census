@@ -1,16 +1,8 @@
 {
   "type": "KNN_SEARCH",
   "collections": [
-    {
-      "name": "county_stats",
-      "features": [
-        "total_population",
-        "no_of_hospitals",
-        "no_of_fire_stations"
-      ]
-    }
   ],
-  "KNNSearchRequest": {
+  "kNNSearchRequest": {
     "kValue": 10,
     "queryMap": {
       "total_population": 14000,

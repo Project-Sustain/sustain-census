@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
 import org.sustain.Collection;
 import org.sustain.LinearRegressionRequest;
 import org.sustain.LinearRegressionResponse;
@@ -57,7 +58,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
     }
 
     @Override
-    public Boolean execute(JavaSparkContext sparkContext) {
+    public Boolean execute(JavaSparkContext sparkContext, SQLContext sqlContext) {
 		Profiler profiler = new Profiler();
 		profiler.addTask("LINEAR_REGRESSION_MODELS");
 		profiler.indent();

@@ -49,9 +49,9 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
     }
 
     @Override
-    public Boolean execute(JavaSparkContext sparkContext) throws Exception {
+    public Boolean execute(JavaSparkContext sparkContext, SQLContext sqlContext) throws Exception {
 
-        kNNSearch(sparkContext);
+        kNNSearch(sparkContext, sqlContext);
         return true;
     }
 
@@ -73,7 +73,7 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
 
     }
 
-    private void kNNSearch(JavaSparkContext sparkContext) {
+    private void kNNSearch(JavaSparkContext sparkContext, SQLContext sqlContext) {
         Dataset<Row> featureDF = preprocessAndGetFeatureDF(sparkContext);
         StructType schema = selectedFeatures.schema();
 
@@ -82,8 +82,6 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
 
         List<Row> rowList = new ArrayList<>();
         rowList.add(row);
-
-        SQLContext sqlContext = new SQLContext(sparkContext);
 
         // convert the query with the same min-max normalization
         Dataset<Row> query = sqlContext.createDataFrame(rowList, schema);
@@ -196,7 +194,7 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
         readOverrides.put("spark.mongodb.input.uri",
                 "mongodb://" + Constants.DB.HOST + ":" + Constants.DB.PORT);
 
-        ReadConfig readConfig = ReadConfig.create(sparkContext);
+        ReadConfig readConfig = ReadConfig.create(sparkContext.getConf(), readOverrides);
         Dataset<Row> collection = MongoSpark.load(sparkContext, readConfig).toDF();
         List<String> featuresList = getFeatureNames();
         Seq<String> features = convertListToSeq(featuresList);
@@ -231,8 +229,8 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
     private List<String> getFeatureNames() {
         List<String> featuresList = new ArrayList<>();
 
-        Dictionary queryMap = this.request.getKNNSearchRequest().getQueryMap();
-        featuresList.addAll(queryMap.getPairsMap().keySet());
+        Map<String, Integer> queryMap = this.request.getKNNSearchRequest().getQueryMapMap();
+        featuresList.addAll(queryMap.keySet());
 
         return featuresList;
     }
@@ -243,8 +241,8 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
         // need to add a null value to compensate for GISJOIN field
         valuesList.add(null);
 
-        Dictionary queryMap = this.request.getKNNSearchRequest().getQueryMap();
-        valuesList.addAll(queryMap.getPairsMap().values());
+        Map<String, Integer> queryMap = this.request.getKNNSearchRequest().getQueryMapMap();
+        valuesList.addAll(queryMap.values());
 
         return valuesList;
     }

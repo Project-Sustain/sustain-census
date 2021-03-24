@@ -8,6 +8,7 @@ import io.grpc.stub.StreamObserver;
 
 import org.apache.spark.api.java.JavaSparkContext;
 
+import org.apache.spark.sql.SQLContext;
 import org.bson.Document;
 
 import org.slf4j.Logger;
@@ -17,7 +18,6 @@ import org.sustain.CountResponse;
 import org.sustain.CountRequest;
 import org.sustain.SparkManager;
 import org.sustain.SparkTask;
-import org.sustain.server.SustainServer;
 import org.sustain.util.Constants;
 
 import java.util.HashMap;
@@ -53,7 +53,7 @@ public class CountQueryHandler extends GrpcSparkHandler<CountRequest, CountRespo
     }
 
     @Override
-    public Boolean execute(JavaSparkContext sparkContext) throws Exception {
+    public Boolean execute(JavaSparkContext sparkContext, SQLContext sqlContext) throws Exception {
         // initialize ReadConfig
         Map<String, String> readOverrides = new HashMap();
         readOverrides.put("spark.mongodb.input.collection",

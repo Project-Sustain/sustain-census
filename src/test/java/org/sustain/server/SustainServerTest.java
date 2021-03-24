@@ -151,7 +151,7 @@ public class SustainServerTest {
 
     @Tag("slow")
     @Test
-    void testKNNSearch() {
+    public void testKNNSearch() {
         executeJsonModelRequest("requests/kNN_search_county_stats_request.json");
     }
 

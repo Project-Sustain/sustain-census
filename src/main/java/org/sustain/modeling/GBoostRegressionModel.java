@@ -35,6 +35,7 @@ import org.apache.spark.ml.regression.GBTRegressor;
 import org.apache.spark.mllib.evaluation.RegressionMetrics;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
@@ -293,7 +294,7 @@ public class GBoostRegressionModel implements SparkTask<Boolean> {
      * Creates Spark context and trains the distributed model
      */
     @Override
-    public Boolean execute(JavaSparkContext sparkContext) {
+    public Boolean execute(JavaSparkContext sparkContext, SQLContext sqlContext) {
         //addClusterDependencyJars(sparkContext);
         double startTime = System.currentTimeMillis();
 

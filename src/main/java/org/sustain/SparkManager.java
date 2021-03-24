@@ -3,6 +3,7 @@ package org.sustain;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
 
 import org.sustain.util.Constants;
@@ -82,6 +83,7 @@ public class SparkManager {
             SparkSession sparkSession = getOrCreateSparkSession();
             JavaSparkContext sparkContext = 
                 new JavaSparkContext(sparkSession.sparkContext());
+            SQLContext sqlContext = sparkSession.sqlContext();
 
             // set job group so all jobs submitted from this thread
             // share a common id, also set interruptOnCancel
@@ -89,7 +91,7 @@ public class SparkManager {
 
             try {
                 // execute spark task
-                return sparkTask.execute(sparkContext);
+                return sparkTask.execute(sparkContext, sqlContext);
             } catch (Exception e) {
                 // if this callable is interrupted
                 // -> cancel spark jobs for this group

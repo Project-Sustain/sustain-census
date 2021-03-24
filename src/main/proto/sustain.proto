@@ -291,14 +291,10 @@ message DirectResponse {
 
 message KNNSearchRequest{
   int32 kValue = 1;
-  Dictionary queryMap = 2;
+  map<string, int32> queryMap = 2;
   CensusResolution resolution = 3;
   DistanceMetric distanceMetric = 4;
   int32 pForMinkowski = 5;  //set this to -1 when DistanceMetric is anything unless Minkowski
-}
-
-message Dictionary {
-    map<string, int32> pairs = 1;
 }
 
 message KNNSearchResponse{
