@@ -21,10 +21,16 @@ import org.sustain.modeling.LinearRegressionModelImpl;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
 import org.apache.spark.util.SizeEstimator;
+import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
+
+import static org.apache.spark.api.java.StorageLevels.MEMORY_ONLY;
 
 public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, ModelResponse> implements SparkTask<Boolean> {
 
@@ -33,6 +39,44 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
     public RegressionQueryHandler(ModelRequest request, StreamObserver<ModelResponse> responseObserver, SparkManager sparkManager) {
         super(request, responseObserver, sparkManager);
     }
+
+	/**
+	 * Compiles a List<String> of column names we desire from the loaded collection, using the features String array.
+	 * @return A Scala Seq<String> of desired column names.
+	 */
+	private Seq<String> desiredColumns(List<String> features, String label) {
+		List<String> cols = new ArrayList<>();
+		cols.add("gis_join");
+		cols.addAll(features);
+		cols.add(label);
+		return convertListToSeq(cols);
+	}
+
+	/**
+	 * Converts a Java List<String> of inputs to a Scala Seq<String>
+	 * @param inputList The Java List<String> we wish to transform
+	 * @return A Scala Seq<String> representing the original input list
+	 */
+	public Seq<String> convertListToSeq(List<String> inputList) {
+		return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
+	}
+
+	/**
+	 * Returns the human-readable amount of bytes, using prefixes.
+	 * @param bytes Long count of bytes
+	 * @return # bytes, KB, MB, GB, depending on number of input bytes.
+	 */
+	private String readableBytes(Long bytes) {
+		if (bytes < 1024) {
+			return String.format("%d bytes", bytes);
+		} else if (bytes < Math.pow(1024, 2)) {
+			return String.format("%.2f KB", bytes / 1024.0);
+		} else if (bytes < Math.pow(1024, 3)) {
+			return String.format("%.2f MB", bytes / Math.pow(1024, 2));
+		} else {
+			return String.format("%.2f GB", bytes / Math.pow(1024, 3));
+		}
+	}
 
     @Override
     public void handleRequest() {
@@ -77,24 +121,33 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		ReadConfig readConfig = ReadConfig.create(sparkContext.getConf(), readOverrides);
 		profiler.completeTask("CREATE_READ_CONFIG");
 
-		// Lazy-load the collection in as a DF
+		// Lazy-load the collection in as a DF,
 		profiler.addTask("LOAD_MONGO_COLLECTION");
 		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, readConfig).toDF();
-		Dataset<Row> checkPointed = mongoCollection.localCheckpoint(true);
-		log.info(">>> mongoCollection Size: {}", SizeEstimator.estimate(checkPointed));
+
+		// SQL Select only _id, gis_join, features, and label columns, and discard the rest
+		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(
+				requestCollection.getFeaturesList(), requestCollection.getLabel()
+		));
+
+		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
+		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
+				.isInCollection(lrRequest.getGisJoinsList()));
+
+		// Persist filtered data to memory
+		Dataset<Row> persistedCollection = gisDataset.persist(MEMORY_ONLY);
+		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
 		// Build and run a model for each GISJoin in the request
-
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
 
 			String modelTaskName = String.format("MODEL_GISJOIN_%s", gisJoin);
-
 			profiler.addTask(modelTaskName);
 			profiler.indent();
 
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(checkPointed)
+					.forMongoCollection(persistedCollection)
 					.forGISJoin(gisJoin)
 					.forFeatures(requestCollection.getFeaturesList())
 					.forLabel(requestCollection.getLabel())
@@ -131,6 +184,9 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.unindent();
 			this.responseObserver.onNext(response);
 		}
+
+		// Unpersist collection and complete task
+		persistedCollection.unpersist(true);
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());

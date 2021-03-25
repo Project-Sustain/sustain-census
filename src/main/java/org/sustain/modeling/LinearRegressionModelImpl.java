@@ -82,44 +82,16 @@ public class LinearRegressionModelImpl {
         return totalIterations;
     }
 
-    /**
-     * Compiles a List<String> of column names we desire from the loaded collection, using the features String array.
-     * @return A Scala Seq<String> of desired column names.
-     */
-    private Seq<String> desiredColumns() {
-        List<String> cols = new ArrayList<>();
-        cols.add("gis_join");
-        cols.addAll(this.features);
-        cols.add(this.label);
-        return convertListToSeq(cols);
-    }
-
-    /**
-     * Converts a Java List<String> of inputs to a Scala Seq<String>
-     * @param inputList The Java List<String> we wish to transform
-     * @return A Scala Seq<String> representing the original input list
-     */
-    public Seq<String> convertListToSeq(List<String> inputList) {
-        return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
-    }
-
     public void buildAndRunModel(Profiler profiler) {
-
-        // Select just the columns we want, discard the rest
-        String selectColumnsTaskName = String.format("SELECT_COLUMNS_%s", this.gisJoin);
-        profiler.addTask(selectColumnsTaskName);
-        Dataset<Row> selected = this.mongoCollection.select("_id", desiredColumns());
-        profiler.completeTask(selectColumnsTaskName);
 
         log.info(">>> Building model for GISJoin {}", this.gisJoin);
 
         // Filter collection by our GISJoin
         String filterTaskName = String.format("FILTER_GISJOIN_%s", this.gisJoin);
         profiler.addTask(filterTaskName);
-        Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").$eq$eq$eq(this.gisJoin))
+        Dataset<Row> gisDataset = this.mongoCollection.filter(this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin))
                 .withColumnRenamed(this.label, "label"); // Rename the chosen label column to "label"
         profiler.completeTask(filterTaskName);
-
 
         // Create a VectorAssembler to assemble all the feature columns into a single column vector named "features"
         String vectorTransformTaskName = String.format("VECTOR_TRANSFORM_%s", this.gisJoin);
