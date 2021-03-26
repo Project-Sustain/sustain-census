@@ -131,8 +131,11 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		));
 
 		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
-		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
-				.isInCollection(lrRequest.getGisJoinsList()));
+		Dataset<Row> gisDataset = selected.filter("gis_join IN ( G0100290, G0100210, G0100190, G0100230 )");
+
+
+		//Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
+		//		.isInCollection(lrRequest.getGisJoinsList()));
 
 		// Persist filtered data to memory
 		Dataset<Row> persistedCollection = gisDataset.persist(MEMORY_ONLY);
