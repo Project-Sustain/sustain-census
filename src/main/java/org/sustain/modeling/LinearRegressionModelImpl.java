@@ -104,6 +104,8 @@ public class LinearRegressionModelImpl {
         Dataset<Row> mergedDataset = vectorAssembler.transform(gisDataset);
         log.info(">>> mergedDataset Size: {}", SizeEstimator.estimate(mergedDataset));
         log.info(">>> mergedDataset explain():");
+
+        /*
         mergedDataset.explain();
         profiler.completeTask(vectorTransformTaskName);
 
@@ -146,6 +148,8 @@ public class LinearRegressionModelImpl {
         this.rmse = summary.rootMeanSquaredError();
         this.r2 = summary.r2();
 
+
+         */
         log.info(">>> Finished building model for GISJoin {}", this.gisJoin);
     }
 

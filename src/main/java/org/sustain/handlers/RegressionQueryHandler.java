@@ -142,7 +142,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
-		/*
+
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
 
@@ -188,7 +188,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.unindent();
 			this.responseObserver.onNext(response);
 		}
-		*/
+
 
 
 		// Unpersist collection and complete task
