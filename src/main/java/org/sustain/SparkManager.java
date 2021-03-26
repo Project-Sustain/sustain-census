@@ -2,18 +2,14 @@ package org.sustain;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
 
-import org.sustain.handlers.ClusteringQueryHandler;
 import org.sustain.util.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -76,7 +72,6 @@ public class SparkManager {
         for (String jar : this.jars) {
             if (!sparkContext.jars().contains(jar)) {
                 sparkContext.addJar(jar);
-                log.info("JAR {} successfully added to cluster", jar);
             }
         }
 

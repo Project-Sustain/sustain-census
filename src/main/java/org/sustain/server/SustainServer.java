@@ -14,12 +14,16 @@ public class SustainServer {
 
     private static final Logger log = LogManager.getLogger(SustainServer.class);
     private static final String[] sparkJarPaths = {
-        "build/libs/mongo-spark-connector_2.12-3.0.1.jar",
-        "build/libs/spark-core_2.12-3.0.1.jar",
-        "build/libs/spark-mllib_2.12-3.0.1.jar",
-        "build/libs/spark-sql_2.12-3.0.1.jar",
-        "build/libs/bson-4.0.5.jar",
-        "build/libs/mongo-java-driver-3.12.8.jar"
+            "build/scala-collection-compat_2.12-2.1.1.jar",
+            "build/scala-library-2.12.11.jar",
+            "build/scala-xml_2.12-1.2.0.jar",
+            "build/scala-parser-combinators_2.12-1.1.2.jar",
+            "build/libs/mongo-spark-connector_2.12-3.0.1.jar",
+            "build/libs/spark-core_2.12-3.0.1.jar",
+            "build/libs/spark-mllib_2.12-3.0.1.jar",
+            "build/libs/spark-sql_2.12-3.0.1.jar",
+            "build/libs/bson-4.0.5.jar",
+            "build/libs/mongo-java-driver-3.12.8.jar"
     };
 
     private Server server;
