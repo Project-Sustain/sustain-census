@@ -105,10 +105,10 @@ public class LinearRegressionModelImpl {
         log.info(">>> mergedDataset Size: {}", SizeEstimator.estimate(mergedDataset));
         log.info(">>> mergedDataset explain():");
 
-        /*
         mergedDataset.explain();
         profiler.completeTask(vectorTransformTaskName);
 
+        /*
         // Create an MLLib Linear Regression object using user-specified parameters
         String lrCreateFitTaskName = String.format("LR_CREATE_FIT_%s", this.gisJoin);
         profiler.addTask(lrCreateFitTaskName);
