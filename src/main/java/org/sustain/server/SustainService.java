@@ -84,7 +84,6 @@ public class SustainService extends SustainGrpc.SustainImplBase {
         }
 
         handler.handleRequest();
-        responseObserver.onCompleted();
     }
 
     @Override

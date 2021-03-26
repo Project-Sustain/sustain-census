@@ -106,6 +106,7 @@ public class LinearRegressionModelImpl {
         log.info(">>> mergedDataset explain():");
 
         mergedDataset.explain();
+        mergedDataset.show();
         profiler.completeTask(vectorTransformTaskName);
 
         /*
