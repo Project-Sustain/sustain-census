@@ -145,6 +145,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		profiler.addTask("LOAD_MONGO_COLLECTION");
 		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, readConfig).toDF();
 
+		/*
 		// SQL Select only _id, gis_join, features, and label columns, and discard the rest
 		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(
 				requestCollection.getFeaturesList(), requestCollection.getLabel()));
@@ -161,7 +162,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		Dataset<Row> persistedCollection = gisDataset.persist(MEMORY_ONLY);
 		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
-
+		*/
 
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
@@ -171,7 +172,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.indent();
 
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(persistedCollection)
+					.forMongoCollection(mongoCollection)
 					.forGISJoin(gisJoin)
 					.forFeatures(requestCollection.getFeaturesList())
 					.forLabel(requestCollection.getLabel())
@@ -212,7 +213,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 
 		// Unpersist collection and complete task
-		persistedCollection.unpersist(true);
+		//persistedCollection.unpersist(true);
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());
