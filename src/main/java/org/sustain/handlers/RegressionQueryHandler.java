@@ -78,6 +78,25 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		}
 	}
 
+	private void addJars(JavaSparkContext sparkContext) {
+		String[] sparkJarPaths = {
+				"build/libs/scala-collection-compat_2.12-2.1.1.jar",
+				"build/libs/scala-library-2.12.11.jar",
+				"build/libs/scala-xml_2.12-1.2.0.jar",
+				"build/libs/scala-parser-combinators_2.12-1.1.2.jar",
+				"build/libs/mongo-spark-connector_2.12-3.0.1.jar",
+				"build/libs/spark-core_2.12-3.0.1.jar",
+				"build/libs/spark-mllib_2.12-3.0.1.jar",
+				"build/libs/spark-sql_2.12-3.0.1.jar",
+				"build/libs/bson-4.0.5.jar",
+				"build/libs/mongo-java-driver-3.12.8.jar"
+		};
+
+		for (String jar: sparkJarPaths) {
+			sparkContext.addJar(jar);
+		}
+	}
+
     @Override
     public void handleRequest() {
         if (isValid(this.request)) {
@@ -102,6 +121,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
     @Override
     public Boolean execute(JavaSparkContext sparkContext) {
+		addJars(sparkContext);
 		Profiler profiler = new Profiler();
 		profiler.addTask("LINEAR_REGRESSION_MODELS");
 		profiler.indent();
