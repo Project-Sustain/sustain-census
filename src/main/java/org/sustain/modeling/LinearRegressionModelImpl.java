@@ -109,7 +109,7 @@ public class LinearRegressionModelImpl {
         mergedDataset.show();
         profiler.completeTask(vectorTransformTaskName);
 
-        /*
+
         // Create an MLLib Linear Regression object using user-specified parameters
         String lrCreateFitTaskName = String.format("LR_CREATE_FIT_%s", this.gisJoin);
         profiler.addTask(lrCreateFitTaskName);
@@ -149,8 +149,6 @@ public class LinearRegressionModelImpl {
         this.rmse = summary.rootMeanSquaredError();
         this.r2 = summary.r2();
 
-
-         */
         log.info(">>> Finished building model for GISJoin {}", this.gisJoin);
     }
 
