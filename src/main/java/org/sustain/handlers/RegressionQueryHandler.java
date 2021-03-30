@@ -145,11 +145,11 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		profiler.addTask("LOAD_MONGO_COLLECTION");
 		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, readConfig).toDF();
 
-		/*
+
 		// SQL Select only _id, gis_join, features, and label columns, and discard the rest
 		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(
 				requestCollection.getFeaturesList(), requestCollection.getLabel()));
-
+		/*
 		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
@@ -161,8 +161,10 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		// Persist filtered data to memory
 		Dataset<Row> persistedCollection = gisDataset.persist(MEMORY_ONLY);
 		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
+
+		 */
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
-		*/
+
 
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
