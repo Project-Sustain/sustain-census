@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.api.java.function.ReduceFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
@@ -155,16 +156,26 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// SQL Select only _id, gis_join, features, and label columns, and discard the rest.
 		// Then, rename the label column to "label", and features column to "features".
-		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(requestCollection.getFeaturesList(),
-				requestCollection.getLabel()))
-				.withColumnRenamed(requestCollection.getLabel(), "label")
-				.withColumnRenamed(requestCollection.getFeatures(0), "features");
+		Dataset<Row> selected = mongoCollection.select("_id",
+				desiredColumns(requestCollection.getFeaturesList(), requestCollection.getLabel())
+		);
+
+		// Rename all the features columns to "feature_0, feature_1, ..., feature_n"
+		int featuresIndex = 0;
+		for (String feature: requestCollection.getFeaturesList()) {
+			selected = selected.withColumnRenamed(feature, "feature_" + featuresIndex);
+			featuresIndex++;
+		}
+
+		// Rename label column to "label"
+		selected = selected.withColumnRenamed(requestCollection.getLabel(), "label");
 
 		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 
-		gisDataset.groupBy("gis_join").agg(org.apache.spark.sql.functions.collect_list("features")).toDF("gis_join","features").show();
+		gisDataset.groupBy("gis_join").df().show();
+
 		/*
 		// Create map function for Map portion of Map Reduce
 		MapFunction<Row, Tuple2<String, Double>> mapFunction = row -> new Tuple2<String, Double>(
