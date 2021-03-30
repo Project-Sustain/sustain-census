@@ -7,8 +7,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoder;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.KeyValueGroupedDataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.StructType;
 import org.sustain.Collection;
 import org.sustain.LinearRegressionRequest;
 import org.sustain.LinearRegressionResponse;
@@ -21,8 +26,11 @@ import org.sustain.modeling.LinearRegressionModelImpl;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
 import org.apache.spark.util.SizeEstimator;
+import scala.Function2;
+import scala.Tuple2;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
+import scala.reflect.ClassTag;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -145,14 +153,33 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		profiler.addTask("LOAD_MONGO_COLLECTION");
 		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, readConfig).toDF();
 
-
-		// SQL Select only _id, gis_join, features, and label columns, and discard the rest
-		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(
-				requestCollection.getFeaturesList(), requestCollection.getLabel()));
+		// SQL Select only _id, gis_join, features, and label columns, and discard the rest.
+		// Then, rename the label column to "label", and features column to "features".
+		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(requestCollection.getFeaturesList(),
+				requestCollection.getLabel()))
+				.withColumnRenamed(requestCollection.getLabel(), "label")
+				.withColumnRenamed(requestCollection.getFeatures(0), "features");
 
 		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
+
+		gisDataset.groupBy("gis_join").df().show();
+		/*
+		// Create map function for Map portion of Map Reduce
+		MapFunction<Row, Tuple2<String, Double>> mapFunction = row -> new Tuple2<String, Double>(
+				row.getAs("gis_join"), row.getAs("features")
+		);
+
+		// Create Encoder to convert JVM objects to Spark SQL representations
+		Encoder<Tuple2<String, Double>> encoder = Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE());
+
+		// Map the Rows to KV pairs where the key is the String GISJoin, and the value is the feature
+		Dataset<Tuple2<String, Double>> keyValuePairs = gisDataset.map(mapFunction, encoder);
+
+		KeyValueGroupedDataset<String, Double> kvPairs = gisDataset.groupByKey(mapFunction, encoder);
+		*/
+
 
 
 		//Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
@@ -160,12 +187,12 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// Persist filtered data to memory
 
-		Dataset<Row> persistedCollection = gisDataset.checkpoint(true);
+		//Dataset<Row> persistedCollection = gisDataset.checkpoint(true);
 		//log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
-		/*
-		 */
+
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
+		/*
 
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
@@ -216,10 +243,14 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 
 		// Unpersist collection and complete task
+
+		 */
 		//persistedCollection.unpersist(true);
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());
+
+
 
 		return true;
     }
