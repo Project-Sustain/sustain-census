@@ -164,7 +164,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 
-		gisDataset.groupBy("gis_join").df().show();
+		gisDataset.groupBy("gis_join").agg(org.apache.spark.sql.functions.collect_list("features")).toDF("gis_join","features").show();
 		/*
 		// Create map function for Map portion of Map Reduce
 		MapFunction<Row, Tuple2<String, Double>> mapFunction = row -> new Tuple2<String, Double>(
