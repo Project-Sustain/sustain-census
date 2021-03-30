@@ -89,25 +89,24 @@ public class LinearRegressionModelImpl {
         // Filter collection by our GISJoin
         String filterTaskName = String.format("FILTER_GISJOIN_%s", this.gisJoin);
         profiler.addTask(filterTaskName);
-        Dataset<Row> gisDataset = this.mongoCollection.filter(this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin))
-                .withColumnRenamed(this.label, "label"); // Rename the chosen label column to "label"
+        Dataset<Row> gisDataset = this.mongoCollection.filter(this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin));
         profiler.completeTask(filterTaskName);
 
         // Create a VectorAssembler to assemble all the feature columns into a single column vector named "features"
-        String vectorTransformTaskName = String.format("VECTOR_TRANSFORM_%s", this.gisJoin);
-        profiler.addTask(vectorTransformTaskName);
-        VectorAssembler vectorAssembler = new VectorAssembler()
-                .setInputCols(this.features.toArray(new String[0]))
-                .setOutputCol("features");
+        //String vectorTransformTaskName = String.format("VECTOR_TRANSFORM_%s", this.gisJoin);
+        //profiler.addTask(vectorTransformTaskName);
+        //VectorAssembler vectorAssembler = new VectorAssembler()
+        //        .setInputCols(this.features.toArray(new String[0]))
+        //        .setOutputCol("features");
 
         // Transform the gisDataset to have the new "features" column vector
-        Dataset<Row> mergedDataset = vectorAssembler.transform(gisDataset);
-        log.info(">>> mergedDataset Size: {}", SizeEstimator.estimate(mergedDataset));
-        log.info(">>> mergedDataset explain():");
+        //Dataset<Row> mergedDataset = vectorAssembler.transform(gisDataset);
+        //log.info(">>> mergedDataset Size: {}", SizeEstimator.estimate(mergedDataset));
+        //log.info(">>> mergedDataset explain():");
 
-        mergedDataset.explain();
-        mergedDataset.show();
-        profiler.completeTask(vectorTransformTaskName);
+        //mergedDataset.explain();
+        //mergedDataset.show();
+        //profiler.completeTask(vectorTransformTaskName);
 
 
         // Create an MLLib Linear Regression object using user-specified parameters
@@ -126,7 +125,7 @@ public class LinearRegressionModelImpl {
                 .setStandardization(this.setStandardization);
 
         // Fit the dataset with the "features" and "label" columns
-        LinearRegressionModel lrModel = linearRegression.fit(mergedDataset);
+        LinearRegressionModel lrModel = linearRegression.fit(gisDataset);
         profiler.completeTask(lrCreateFitTaskName);
 
         // Save training summary

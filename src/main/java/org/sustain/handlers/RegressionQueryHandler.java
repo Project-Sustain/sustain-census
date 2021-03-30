@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.api.java.function.ReduceFunction;
+import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
@@ -163,8 +164,11 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// Rename all the features columns to "feature_0, feature_1, ..., feature_n"
 		int featuresIndex = 0;
+		List<String> featureColumns = new ArrayList<>();
 		for (String feature: requestCollection.getFeaturesList()) {
-			selected = selected.withColumnRenamed(feature, "feature_" + featuresIndex);
+			String featureColumnName = String.format("feature_%d", featuresIndex);
+			selected = selected.withColumnRenamed(feature, featureColumnName);
+			featureColumns.add(featureColumnName);
 			featuresIndex++;
 		}
 
@@ -175,15 +179,22 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 
+		VectorAssembler vectorAssembler = new VectorAssembler()
+				.setInputCols(featureColumns.toArray(new String[0]))
+				.setOutputCol("features");
+
+		gisDataset = vectorAssembler.transform(gisDataset);
+		gisDataset.show(100);
+		gisDataset.persist();
 		// Create map function for Map portion of Map Reduce
-		MapFunction<Row, Tuple3<String, Long, Double>> mapFunction = row -> new Tuple3<String, Long, Double>(
-				row.getAs("gis_join"), row.getAs("feature_0"), row.getAs("label")
-		);
+		//MapFunction<Row, Tuple3<String, Long, Double>> mapFunction = row -> new Tuple3<String, Long, Double>(
+		//		row.getAs("gis_join"), row.getAs("feature_0"), row.getAs("label")
+		//);
 
 		// Create Encoder to convert JVM objects to Spark SQL representations
-		Encoder<Tuple3<String, Long, Double>> encoder = Encoders.tuple(Encoders.STRING(), Encoders.LONG(), Encoders.DOUBLE());
+		//Encoder<Tuple3<String, Long, Double>> encoder = Encoders.tuple(Encoders.STRING(), Encoders.LONG(), Encoders.DOUBLE());
 
-		gisDataset.groupBy("gis_join").df().map(mapFunction, encoder).show();
+		//gisDataset.groupBy("gis_join").agg().df().map(mapFunction, encoder).show();
 
 		/*
 
@@ -209,7 +220,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
-		/*
+
 
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
@@ -219,7 +230,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.indent();
 
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(persistedCollection)
+					.forMongoCollection(gisDataset)
 					.forGISJoin(gisJoin)
 					.forFeatures(requestCollection.getFeaturesList())
 					.forLabel(requestCollection.getLabel())
@@ -257,12 +268,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			this.responseObserver.onNext(response);
 		}
 
-
-
 		// Unpersist collection and complete task
-
-		 */
-		//persistedCollection.unpersist(true);
+		gisDataset.unpersist(true);
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());
