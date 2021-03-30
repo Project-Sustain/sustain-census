@@ -160,7 +160,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// Persist filtered data to memory
 
-		Dataset<Row> persistedCollection = gisDataset.cache();
+		Dataset<Row> persistedCollection = gisDataset.checkpoint(true);
 		//log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 		/*
 		 */
