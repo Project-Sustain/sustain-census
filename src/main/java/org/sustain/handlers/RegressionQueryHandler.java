@@ -161,7 +161,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		// Persist filtered data to memory
 
 		Dataset<Row> persistedCollection = gisDataset.persist();
-		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
+		//log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 		/*
 		 */
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
@@ -175,7 +175,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.indent();
 
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(gisDataset)
+					.forMongoCollection(persistedCollection)
 					.forGISJoin(gisJoin)
 					.forFeatures(requestCollection.getFeaturesList())
 					.forLabel(requestCollection.getLabel())
