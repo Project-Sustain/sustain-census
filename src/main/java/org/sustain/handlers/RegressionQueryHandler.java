@@ -29,6 +29,7 @@ import org.sustain.util.Profiler;
 import org.apache.spark.util.SizeEstimator;
 import scala.Function2;
 import scala.Tuple2;
+import scala.Tuple3;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.reflect.ClassTag;
@@ -174,16 +175,21 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 
-		gisDataset.groupBy("gis_join").df().show();
-
-		/*
 		// Create map function for Map portion of Map Reduce
-		MapFunction<Row, Tuple2<String, Double>> mapFunction = row -> new Tuple2<String, Double>(
-				row.getAs("gis_join"), row.getAs("features")
+		MapFunction<Row, Tuple3<String, Long, Double>> mapFunction = row -> new Tuple3<String, Long, Double>(
+				row.getAs("gis_join"), row.getAs("feature_0"), row.getAs("label")
 		);
 
 		// Create Encoder to convert JVM objects to Spark SQL representations
-		Encoder<Tuple2<String, Double>> encoder = Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE());
+		Encoder<Tuple3<String, Long, Double>> encoder = Encoders.tuple(Encoders.STRING(), Encoders.LONG(), Encoders.DOUBLE());
+
+		gisDataset.groupBy("gis_join").df().map(mapFunction, encoder).show();
+
+		/*
+
+
+
+
 
 		// Map the Rows to KV pairs where the key is the String GISJoin, and the value is the feature
 		Dataset<Tuple2<String, Double>> keyValuePairs = gisDataset.map(mapFunction, encoder);
