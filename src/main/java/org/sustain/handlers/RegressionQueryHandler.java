@@ -154,14 +154,15 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 
-		/*
+
 		//Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
 		//		.isInCollection(lrRequest.getGisJoinsList()));
 
 		// Persist filtered data to memory
-		Dataset<Row> persistedCollection = gisDataset.persist(MEMORY_ONLY);
-		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 
+		Dataset<Row> persistedCollection = gisDataset.persist();
+		log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
+		/*
 		 */
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
