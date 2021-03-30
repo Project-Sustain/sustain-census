@@ -149,12 +149,12 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		// SQL Select only _id, gis_join, features, and label columns, and discard the rest
 		Dataset<Row> selected = mongoCollection.select("_id", desiredColumns(
 				requestCollection.getFeaturesList(), requestCollection.getLabel()));
-		/*
+
 		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
 		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 
-
+		/*
 		//Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
 		//		.isInCollection(lrRequest.getGisJoinsList()));
 
@@ -174,7 +174,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.indent();
 
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(mongoCollection)
+					.forMongoCollection(gisDataset)
 					.forGISJoin(gisJoin)
 					.forFeatures(requestCollection.getFeaturesList())
 					.forLabel(requestCollection.getLabel())
