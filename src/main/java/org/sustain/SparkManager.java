@@ -69,6 +69,7 @@ public class SparkManager {
         // if they don't exist - add JARs to SparkContext
         JavaSparkContext sparkContext =
             new JavaSparkContext(sparkSession.sparkContext());
+        sparkContext.setCheckpointDir("/s/parsons/b/others/sustain/spark/checkpoint");
         for (String jar : this.jars) {
             if (!sparkContext.jars().contains(jar)) {
                 sparkContext.addJar(jar);
