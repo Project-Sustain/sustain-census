@@ -10,6 +10,6 @@
       "no_of_fire_stations" : 0
     },
     "resolution": "County",
-    "distanceMetric" : "Euclidean"
+    "distanceMetric" : "EUCLIDEAN"
   }
 }

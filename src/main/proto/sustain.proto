@@ -303,7 +303,7 @@ message KNNSearchResponse{
 }
 
 enum DistanceMetric {
-  Euclidean = 0;
-  Cosine = 1;
-  Minkowski = 2;
+  EUCLIDEAN = 0;
+  COSINE = 1;
+  MINKOWSKI = 2;
 }

@@ -9,6 +9,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.ml.feature.MinMaxScaler;
 import org.apache.spark.ml.feature.MinMaxScalerModel;
 import org.apache.spark.ml.feature.VectorAssembler;
@@ -34,9 +35,7 @@ import java.util.concurrent.Future;
 public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelResponse> implements SparkTask<Boolean> {
 
     private static final Logger log = LogManager.getFormatterLogger(KNNSearchQueryHandler.class);
-    private Dataset<Row> selectedFeatures;
-    private VectorAssembler assembler;
-    private MinMaxScalerModel scalerModel;
+    private static Broadcast<String> distanceMetric;
 
     public KNNSearchQueryHandler(ModelRequest request, StreamObserver<ModelResponse> responseObserver, SparkManager sparkManager) {
         super(request, responseObserver, sparkManager);
@@ -50,7 +49,8 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
 
     @Override
     public Boolean execute(JavaSparkContext sparkContext, SQLContext sqlContext) throws Exception {
-
+        // broadcast the value of distanceMetric in the request
+        distanceMetric = sparkContext.broadcast(this.request.getKNNSearchRequest().getDistanceMetric().name());
         kNNSearch(sparkContext, sqlContext);
         return true;
     }
@@ -74,7 +74,44 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
     }
 
     private void kNNSearch(JavaSparkContext sparkContext, SQLContext sqlContext) {
-        Dataset<Row> featureDF = preprocessAndGetFeatureDF(sparkContext);
+        // whether state, county, tract or block
+        String resolution = request.getKNNSearchRequest().getResolution().toString().toLowerCase();
+
+        // Initialize mongodb read configuration
+        HashMap<String, String> readOverrides = new HashMap();
+        readOverrides.put("spark.mongodb.input.collection", resolution + "_stats");
+        readOverrides.put("spark.mongodb.input.database", Constants.DB.NAME);
+        readOverrides.put("spark.mongodb.input.uri",
+                "mongodb://" + Constants.DB.HOST + ":" + Constants.DB.PORT);
+
+        ReadConfig readConfig = ReadConfig.create(sparkContext.getConf(), readOverrides);
+        Dataset<Row> collection = MongoSpark.load(sparkContext, readConfig).toDF();
+        List<String> featuresList = getFeatureNames();
+        Seq<String> features = convertListToSeq(featuresList);
+
+        Dataset<Row> selectedFeatures = collection.select(Constants.GIS_JOIN, features);
+
+        // Dropping rows with null values
+        selectedFeatures = selectedFeatures.na().drop();
+
+        // Assembling
+        VectorAssembler assembler = new VectorAssembler().setInputCols(featuresList.toArray(new String[0])).setOutputCol("features");
+        Dataset<Row> featureDF = assembler.transform(selectedFeatures);
+
+        // Scaling
+        log.info("Normalizing features");
+        MinMaxScaler scaler = new MinMaxScaler()
+                .setInputCol("features")
+                .setOutputCol("normalized_features");
+        MinMaxScalerModel scalerModel = scaler.fit(featureDF);
+
+        featureDF = scalerModel.transform(featureDF);
+        featureDF = featureDF.drop("features");
+        featureDF = featureDF.withColumnRenamed("normalized_features", "features");
+
+        log.info("Dataframe after min-max normalization");
+        featureDF.show(10);
+
         StructType schema = selectedFeatures.schema();
 
         List<Integer> queryItem = getFeatureValues();
@@ -95,18 +132,18 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
         JavaRDD<Row> featureJavaRDD = featureDF.toJavaRDD();
 
         JavaPairRDD<Double, String> distancePairRDD = transformedQuery.toJavaRDD().cartesian(featureJavaRDD).mapToPair((PairFunction<Tuple2<Row, Row>, Double, String>) rowRowTuple2 -> {
-            Vector features1 = rowRowTuple2._1.getAs("features1");
-            Vector data = rowRowTuple2._2.getAs("features");
+            Vector queryVector = rowRowTuple2._1.getAs("features1");
+            Vector dataVector = rowRowTuple2._2.getAs("features");
 
             double sqdist;
             try{
-                sqdist = calculateDistance(features1, data);
+                sqdist = calculateDistance(queryVector, dataVector);
             }
             catch (Exception e)
             {
                 throw new Exception(e.getMessage());
             }
-            return new Tuple2<>(sqdist, rowRowTuple2._2.getAs("GISJOIN"));
+            return new Tuple2<>(sqdist, rowRowTuple2._2.getAs(Constants.GIS_JOIN));
         });
 
         int k = this.request.getKNNSearchRequest().getKValue();
@@ -129,20 +166,20 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
 
     private double calculateDistance(Vector v1, Vector v2) throws Exception {
 
-        DistanceMetric distanceMetric = this.request.getKNNSearchRequest().getDistanceMetric();
+        String metric = distanceMetric.getValue();
         double sqdist = -1d;
-        switch (distanceMetric)
+        switch (metric)
         {
-            case Euclidean:
+            case "EUCLIDEAN":
                 sqdist = Vectors.sqdist(v1, v2);
                 break;
-            case Cosine:
+            case "COSINE":
                 sqdist = cosineDistance(v1, v2);
                 break;
-            case Minkowski:
+            case "MINKOWSKI":
                 sqdist = minkowskiDistance(v1, v2);
                 break;
-            case UNRECOGNIZED:
+            case "UNRECOGNIZED":
                 sqdist = Vectors.sqdist(v1, v2);
                 break;
         }
@@ -180,50 +217,6 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
         double crossProduct = Vectors.norm(v1, 2) * Vectors.norm(v2, 2);
 
         return dotProduct/crossProduct;
-    }
-
-    private Dataset<Row> preprocessAndGetFeatureDF(JavaSparkContext sparkContext) {
-
-        // whether state, county, tract or block
-        String resolution = request.getKNNSearchRequest().getResolution().toString().toLowerCase();
-
-        // Initialize mongodb read configuration
-        HashMap<String, String> readOverrides = new HashMap();
-        readOverrides.put("spark.mongodb.input.collection", resolution + "_stats");
-        readOverrides.put("spark.mongodb.input.database", Constants.DB.NAME);
-        readOverrides.put("spark.mongodb.input.uri",
-                "mongodb://" + Constants.DB.HOST + ":" + Constants.DB.PORT);
-
-        ReadConfig readConfig = ReadConfig.create(sparkContext.getConf(), readOverrides);
-        Dataset<Row> collection = MongoSpark.load(sparkContext, readConfig).toDF();
-        List<String> featuresList = getFeatureNames();
-        Seq<String> features = convertListToSeq(featuresList);
-
-        selectedFeatures = collection.select(Constants.GIS_JOIN, features);
-
-        // Dropping rows with null values
-        selectedFeatures = selectedFeatures.na().drop();
-
-        // Assembling
-        assembler = new VectorAssembler().setInputCols(featuresList.toArray(new String[0])).setOutputCol("features");
-        Dataset<Row> featureDF = assembler.transform(selectedFeatures);
-        featureDF.show(10);
-
-        // Scaling
-        log.info("Normalizing features");
-        MinMaxScaler scaler = new MinMaxScaler()
-                .setInputCol("features")
-                .setOutputCol("normalized_features");
-        scalerModel = scaler.fit(featureDF);
-
-        featureDF = scalerModel.transform(featureDF);
-        featureDF = featureDF.drop("features");
-        featureDF = featureDF.withColumnRenamed("normalized_features", "features");
-
-        log.info("Dataframe after min-max normalization");
-        featureDF.show(10);
-
-        return featureDF;
     }
 
     private List<String> getFeatureNames() {
