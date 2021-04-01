@@ -7,15 +7,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.api.java.function.ReduceFunction;
 import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoder;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.KeyValueGroupedDataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.StructType;
 import org.sustain.Collection;
 import org.sustain.LinearRegressionRequest;
 import org.sustain.LinearRegressionResponse;
@@ -27,13 +21,8 @@ import org.sustain.SparkTask;
 import org.sustain.modeling.LinearRegressionModelImpl;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
-import org.apache.spark.util.SizeEstimator;
-import scala.Function2;
-import scala.Tuple2;
-import scala.Tuple3;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
-import scala.reflect.ClassTag;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import static org.apache.spark.api.java.StorageLevels.MEMORY_ONLY;
 
 public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, ModelResponse> implements SparkTask<Boolean> {
 
@@ -184,43 +172,10 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 				.setOutputCol("features");
 
 		gisDataset = vectorAssembler.transform(gisDataset);
-		gisDataset.show(100);
+		gisDataset.show(20);
 		gisDataset.persist();
-		// Create map function for Map portion of Map Reduce
-		//MapFunction<Row, Tuple3<String, Long, Double>> mapFunction = row -> new Tuple3<String, Long, Double>(
-		//		row.getAs("gis_join"), row.getAs("feature_0"), row.getAs("label")
-		//);
-
-		// Create Encoder to convert JVM objects to Spark SQL representations
-		//Encoder<Tuple3<String, Long, Double>> encoder = Encoders.tuple(Encoders.STRING(), Encoders.LONG(), Encoders.DOUBLE());
-
-		//gisDataset.groupBy("gis_join").agg().df().map(mapFunction, encoder).show();
-
-		/*
-
-
-
-
-
-		// Map the Rows to KV pairs where the key is the String GISJoin, and the value is the feature
-		Dataset<Tuple2<String, Double>> keyValuePairs = gisDataset.map(mapFunction, encoder);
-
-		KeyValueGroupedDataset<String, Double> kvPairs = gisDataset.groupByKey(mapFunction, encoder);
-		*/
-
-
-
-		//Dataset<Row> gisDataset = selected.filter(selected.col("gis_join").unary_$bang()
-		//		.isInCollection(lrRequest.getGisJoinsList()));
-
-		// Persist filtered data to memory
-
-		//Dataset<Row> persistedCollection = gisDataset.checkpoint(true);
-		//log.info(">>> mongoCollection Size: {}", readableBytes(SizeEstimator.estimate(persistedCollection)));
 
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
-
-
 
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
@@ -232,7 +187,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
 					.forMongoCollection(gisDataset)
 					.forGISJoin(gisJoin)
-					.forFeatures(requestCollection.getFeaturesList())
+					.forFeatures(featureColumns)
 					.forLabel(requestCollection.getLabel())
 					.withLoss(lrRequest.getLoss())
 					.withSolver(lrRequest.getSolver())
@@ -273,8 +228,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());
-
-
 
 		return true;
     }
