@@ -87,15 +87,37 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 	private void processCollection(LinearRegressionRequest lrRequest, Collection requestCollection,
 										   Dataset<Row> mongoCollection) {
 
-		// SQL Select only _id, gis_join, features, and label columns, and discard the rest.
-		// Then, rename the label column to "label", and features column to "features".
+		/*
+			SQL Select only _id, gis_join, features, and label columns, and discard the rest.
+			Then, rename the label column to "label", and features column to "features":
+			+--------------------+--------+---------+-----------------------+
+			|                 _id|gis_join|timestamp|max_max_air_temperature|
+			+--------------------+--------+---------+-----------------------+
+			|[6024fe7dc1d226e5...|G0100130|788918400|                291.954|
+			|[6024fe7dc1d226e5...|G0100190|788918400|                288.388|
+			|[6024fe7dc1d226e5...|G0100230|788918400|                290.876|
+			|[6024fe7dc1d226e5...|G0100210|788918400|                290.245|
+			|[6024fe7dc1d226e5...|G0100290|788918400|                289.801|
+			+--------------------+--------+---------+-----------------------+
+		 */
 		mongoCollection = mongoCollection.select("_id",
 				desiredColumns(requestCollection.getFeaturesList(), requestCollection.getLabel())
 		);
 		mongoCollection.show(5);
 
-		// Rename all the features columns to "feature_0, feature_1, ..., feature_n", and label column to "label".
-		// This gives our Dataset<Row> generalized column names, which allows for LR model flexibility.
+		/*
+			Rename all the features columns to "feature_0, feature_1, ..., feature_n", and label column to "label".
+			This gives our Dataset<Row> generalized column names, which allows for LR model flexibility:
+			+--------------------+--------+---------+-------+
+			|                 _id|gis_join|feature_0|  label|
+			+--------------------+--------+---------+-------+
+			|[6024fe7dc1d226e5...|G0100130|788918400|291.954|
+			|[6024fe7dc1d226e5...|G0100190|788918400|288.388|
+			|[6024fe7dc1d226e5...|G0100230|788918400|290.876|
+			|[6024fe7dc1d226e5...|G0100210|788918400|290.245|
+			|[6024fe7dc1d226e5...|G0100290|788918400|289.801|
+			+--------------------+--------+---------+-------+
+		 */
 		int featuresIndex = 0;
 		List<String> featureColumns = new ArrayList<>();
 		mongoCollection = mongoCollection.withColumnRenamed(requestCollection.getLabel(), "label");
@@ -107,17 +129,40 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		}
 		mongoCollection.show(5);
 
-		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
-		// This greatly reduces the size of the Dataset.
+		/*
+			SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
+			This greatly reduces the size of the Dataset:
+			+--------------------+--------+---------+-------+
+			|                 _id|gis_join|feature_0|  label|
+			+--------------------+--------+---------+-------+
+			|[6024fe7dc1d226e5...|G0100190|788918400|288.388|
+			|[6024fe7ec1d226e5...|G0100190|789004800|281.047|
+			|[6024fe7fc1d226e5...|G0100190|789091200|282.115|
+			|[6024fe80c1d226e5...|G0100190|789177600|286.618|
+			|[6024fe80c1d226e5...|G0100190|789264000|288.166|
+			+--------------------+--------+---------+-------+
+
+		 */
 		mongoCollection = mongoCollection.filter(mongoCollection.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
 		mongoCollection.show(5);
 
-		// Assemble all the feature columns into a row-oriented Vector.
+		/*
+			Assemble all the feature columns into a row-oriented Vector:
+			+--------------------+--------+---------+-------+
+			|                 _id|gis_join|feature_0|  label|
+			+--------------------+--------+---------+-------+
+			|[6024fe7dc1d226e5...|G0100190|788918400|288.388|
+			|[6024fe7ec1d226e5...|G0100190|789004800|281.047|
+			|[6024fe7fc1d226e5...|G0100190|789091200|282.115|
+			|[6024fe80c1d226e5...|G0100190|789177600|286.618|
+			|[6024fe80c1d226e5...|G0100190|789264000|288.166|
+			+--------------------+--------+---------+-------+
+		 */
 		VectorAssembler vectorAssembler = new VectorAssembler()
 				.setInputCols(featureColumns.toArray(new String[0]))
 				.setOutputCol("features");
-		vectorAssembler.transform(mongoCollection);
+		mongoCollection = vectorAssembler.transform(mongoCollection);
 		mongoCollection.show(5);
 	}
 
