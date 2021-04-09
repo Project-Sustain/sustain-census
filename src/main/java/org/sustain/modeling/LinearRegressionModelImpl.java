@@ -87,10 +87,9 @@ public class LinearRegressionModelImpl {
         log.info(">>> Building model for GISJoin {}", this.gisJoin);
 
         // Filter collection by our GISJoin
-        String filterTaskName = String.format("FILTER_GISJOIN_%s", this.gisJoin);
-        profiler.addTask(filterTaskName);
-        Dataset<Row> gisDataset = this.mongoCollection.filter(this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin));
-        profiler.completeTask(filterTaskName);
+        Dataset<Row> gisDataset = this.mongoCollection.filter(
+                this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin)
+        );
 
         // Create a VectorAssembler to assemble all the feature columns into a single column vector named "features"
         //String vectorTransformTaskName = String.format("VECTOR_TRANSFORM_%s", this.gisJoin);
@@ -110,8 +109,6 @@ public class LinearRegressionModelImpl {
 
 
         // Create an MLLib Linear Regression object using user-specified parameters
-        String lrCreateFitTaskName = String.format("LR_CREATE_FIT_%s", this.gisJoin);
-        profiler.addTask(lrCreateFitTaskName);
         LinearRegression linearRegression = new LinearRegression()
                 .setLoss(this.loss)
                 .setSolver(this.solver)
@@ -126,7 +123,6 @@ public class LinearRegressionModelImpl {
 
         // Fit the dataset with the "features" and "label" columns
         LinearRegressionModel lrModel = linearRegression.fit(gisDataset);
-        profiler.completeTask(lrCreateFitTaskName);
 
         // Save training summary
         LinearRegressionTrainingSummary summary = lrModel.summary();

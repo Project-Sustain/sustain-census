@@ -84,7 +84,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 	 * @param requestCollection The gRPC Collection request object.
 	 * @param mongoCollection The lazily-loaded mongodb collection.
 	 */
-	private void processCollection(LinearRegressionRequest lrRequest, Collection requestCollection,
+	private Dataset<Row> processCollection(LinearRegressionRequest lrRequest, Collection requestCollection,
 										   Dataset<Row> mongoCollection) {
 
 		/*
@@ -162,8 +162,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		VectorAssembler vectorAssembler = new VectorAssembler()
 				.setInputCols(featureColumns.toArray(new String[0]))
 				.setOutputCol("features");
-		mongoCollection = vectorAssembler.transform(mongoCollection);
-		mongoCollection.show(5);
+		return vectorAssembler.transform(mongoCollection);
 	}
 
 	/**
@@ -237,7 +236,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		// by each linear regression model per GISJoin
 		ReadConfig mongoReadConfig = createReadConfig(sparkContext, requestCollection.getName());
 		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, mongoReadConfig).toDF();
-		processCollection(lrRequest, requestCollection, mongoCollection);
+		mongoCollection = processCollection(lrRequest, requestCollection, mongoCollection);
 		mongoCollection.persist();
 
 		// Build and run a model for each GISJoin in the request
@@ -250,7 +249,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
 					.forMongoCollection(mongoCollection)
 					.forGISJoin(gisJoin)
-					.forLabel(requestCollection.getLabel())
 					.withLoss(lrRequest.getLoss())
 					.withSolver(lrRequest.getSolver())
 					.withAggregationDepth(lrRequest.getAggregationDepth())
