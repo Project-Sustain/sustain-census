@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.ml.feature.MinMaxScaler;
@@ -19,6 +20,8 @@ import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.StructType;
 import org.sustain.*;
 import org.sustain.util.Constants;
+import org.sustain.util.Helper;
+import scala.Int;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
@@ -36,6 +39,7 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
 
     private static final Logger log = LogManager.getFormatterLogger(KNNSearchQueryHandler.class);
     private static Broadcast<String> distanceMetric;
+    private static Broadcast<Integer> pForMinkowski;
 
     public KNNSearchQueryHandler(ModelRequest request, StreamObserver<ModelResponse> responseObserver, SparkManager sparkManager) {
         super(request, responseObserver, sparkManager);
@@ -51,6 +55,12 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
     public Boolean execute(JavaSparkContext sparkContext, SQLContext sqlContext) throws Exception {
         // broadcast the value of distanceMetric in the request
         distanceMetric = sparkContext.broadcast(this.request.getKNNSearchRequest().getDistanceMetric().name());
+
+        if(this.request.getKNNSearchRequest().getPForMinkowski() > 0)
+            pForMinkowski = sparkContext.broadcast(this.request.getKNNSearchRequest().getPForMinkowski());
+        else
+            pForMinkowski = sparkContext.broadcast(Integer.valueOf(3)); //default p=3
+
         kNNSearch(sparkContext, sqlContext);
         return true;
     }
@@ -135,9 +145,11 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
             Vector queryVector = rowRowTuple2._1.getAs("features1");
             Vector dataVector = rowRowTuple2._2.getAs("features");
 
+            String metric = distanceMetric.getValue();
+            Integer p = pForMinkowski.getValue();
             double sqdist;
             try{
-                sqdist = calculateDistance(queryVector, dataVector);
+                sqdist = Helper.calculateDistance(metric, queryVector, dataVector, p);
             }
             catch (Exception e)
             {
@@ -164,7 +176,7 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
         }
     }
 
-    private double calculateDistance(Vector v1, Vector v2) throws Exception {
+    /*private double calculateDistance(Vector v1, Vector v2) throws Exception {
 
         String metric = distanceMetric.getValue();
         double sqdist = -1d;
@@ -217,7 +229,7 @@ public class KNNSearchQueryHandler extends GrpcSparkHandler<ModelRequest, ModelR
         double crossProduct = Vectors.norm(v1, 2) * Vectors.norm(v2, 2);
 
         return dotProduct/crossProduct;
-    }
+    }*/
 
     private List<String> getFeatureNames() {
         List<String> featuresList = new ArrayList<>();
