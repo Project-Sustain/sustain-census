@@ -149,15 +149,15 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		/*
 			Assemble all the feature columns into a row-oriented Vector:
-			+--------------------+--------+---------+-------+
-			|                 _id|gis_join|feature_0|  label|
-			+--------------------+--------+---------+-------+
-			|[6024fe7dc1d226e5...|G0100190|788918400|288.388|
-			|[6024fe7ec1d226e5...|G0100190|789004800|281.047|
-			|[6024fe7fc1d226e5...|G0100190|789091200|282.115|
-			|[6024fe80c1d226e5...|G0100190|789177600|286.618|
-			|[6024fe80c1d226e5...|G0100190|789264000|288.166|
-			+--------------------+--------+---------+-------+
+			+--------------------+--------+---------+-------+------------+
+			|                 _id|gis_join|feature_0|  label|    features|
+			+--------------------+--------+---------+-------+------------+
+			|[6024fe7dc1d226e5...|G0100190|788918400|288.388|[7.889184E8]|
+			|[6024fe7ec1d226e5...|G0100190|789004800|281.047|[7.890048E8]|
+			|[6024fe7fc1d226e5...|G0100190|789091200|282.115|[7.890912E8]|
+			|[6024fe80c1d226e5...|G0100190|789177600|286.618|[7.891776E8]|
+			|[6024fe80c1d226e5...|G0100190|789264000|288.166| [7.89264E8]|
+			+--------------------+--------+---------+-------+------------+
 		 */
 		VectorAssembler vectorAssembler = new VectorAssembler()
 				.setInputCols(featureColumns.toArray(new String[0]))
@@ -239,8 +239,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, mongoReadConfig).toDF();
 		processCollection(lrRequest, requestCollection, mongoCollection);
 		mongoCollection.persist();
-
-		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
 		// Build and run a model for each GISJoin in the request
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
