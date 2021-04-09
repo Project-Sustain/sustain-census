@@ -37,11 +37,8 @@ public class LinearRegressionModelImpl {
 
     protected static final Logger log = LogManager.getLogger(LinearRegressionModelImpl.class);
 
-    private JavaSparkContext sparkContext;
-    private ReadConfig       mongoReadConfig;
     private Dataset<Row>     mongoCollection;
-    private List<String>     features;
-    private String           gisJoin, label, loss, solver;
+    private String           gisJoin, loss, solver;
     private Integer          aggregationDepth, maxIterations, totalIterations;
     private Double           elasticNetParam, epsilon, regularizationParam, convergenceTolerance, rmse, r2, intercept;
     private List<Double>     coefficients, objectiveHistory;
@@ -90,23 +87,6 @@ public class LinearRegressionModelImpl {
         Dataset<Row> gisDataset = this.mongoCollection.filter(
                 this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin)
         );
-
-        // Create a VectorAssembler to assemble all the feature columns into a single column vector named "features"
-        //String vectorTransformTaskName = String.format("VECTOR_TRANSFORM_%s", this.gisJoin);
-        //profiler.addTask(vectorTransformTaskName);
-        //VectorAssembler vectorAssembler = new VectorAssembler()
-        //        .setInputCols(this.features.toArray(new String[0]))
-        //        .setOutputCol("features");
-
-        // Transform the gisDataset to have the new "features" column vector
-        //Dataset<Row> mergedDataset = vectorAssembler.transform(gisDataset);
-        //log.info(">>> mergedDataset Size: {}", SizeEstimator.estimate(mergedDataset));
-        //log.info(">>> mergedDataset explain():");
-
-        //mergedDataset.explain();
-        //mergedDataset.show();
-        //profiler.completeTask(vectorTransformTaskName);
-
 
         // Create an MLLib Linear Regression object using user-specified parameters
         LinearRegression linearRegression = new LinearRegression()
@@ -167,13 +147,10 @@ public class LinearRegressionModelImpl {
         LinearRegressionModelImpl lrModel = new LinearRegressionModelBuilder()
                 .forMongoCollection(MongoSpark.load(sparkContext, readConfig).toDF())
                 .forGISJoin("G0100290") // Cleburne County, Alabama
-                .forFeatures(Collections.singletonList("singleton"))
-                .forLabel("max_max_air_temperature")
                 .withMaxIterations(100)
                 .withEpsilon(1.35)
                 .withTolerance(1E-7)
                 .build();
-
 
         lrModel.buildAndRunModel(new Profiler());
         log.info("Executed LinearRegressionModelImpl.main() successfully");
@@ -185,27 +162,14 @@ public class LinearRegressionModelImpl {
      */
     public static class LinearRegressionModelBuilder implements ModelBuilder<LinearRegressionModelImpl> {
 
-        private JavaSparkContext sparkContext;
-        private ReadConfig       mongoReadConfig;
         private Dataset<Row>     mongoCollection;
-        private List<String>     features;
-        private String           gisJoin, label;
+        private String           gisJoin;
 
         // Model parameters and their defaults
         private String           loss="squaredError", solver="auto";
         private Integer          aggregationDepth=2, maxIterations=10;
         private Double           elasticNetParam=0.0, epsilon=1.35, regularizationParam=0.5, convergenceTolerance=1E-6;
         private Boolean          fitIntercept=true, setStandardization=true;
-
-        public LinearRegressionModelBuilder forSparkContext(JavaSparkContext sparkContextReference) {
-            this.sparkContext = sparkContextReference;
-            return this;
-        }
-
-        public LinearRegressionModelBuilder forReadConfig(ReadConfig mongoReadConfig) {
-            this.mongoReadConfig = mongoReadConfig;
-            return this;
-        }
 
         public LinearRegressionModelBuilder forMongoCollection(Dataset<Row> mongoCollection) {
             this.mongoCollection = mongoCollection;
@@ -214,16 +178,6 @@ public class LinearRegressionModelImpl {
 
         public LinearRegressionModelBuilder forGISJoin(String gisJoin) {
             this.gisJoin = gisJoin;
-            return this;
-        }
-
-        public LinearRegressionModelBuilder forLabel(String label) {
-            this.label = label;
-            return this;
-        }
-
-        public LinearRegressionModelBuilder forFeatures(List<String> features) {
-            this.features = features;
             return this;
         }
 
@@ -299,12 +253,8 @@ public class LinearRegressionModelImpl {
         @Override
         public LinearRegressionModelImpl build() {
             LinearRegressionModelImpl model = new LinearRegressionModelImpl();
-            model.sparkContext = this.sparkContext;
-            model.mongoReadConfig = this.mongoReadConfig;
             model.mongoCollection = this.mongoCollection;
             model.gisJoin = this.gisJoin;
-            model.features = this.features;
-            model.label = this.label;
             model.loss = this.loss;
             model.solver = this.solver;
             model.aggregationDepth = this.aggregationDepth;
