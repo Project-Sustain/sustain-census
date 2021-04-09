@@ -172,6 +172,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 	private void launchModels(LinearRegressionRequest lrRequest, Dataset<Row> mongoCollection) {
 
 		// Build and run a model for each GISJoin in the request
+		int progressIndex = 0;
+		int totalModels = lrRequest.getGisJoinsCount();
 		for (String gisJoin: lrRequest.getGisJoinsList()) {
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
 					.forMongoCollection(mongoCollection)
@@ -205,6 +207,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 					.build();
 
 			logResponse(response);
+			log.info(String.format(">>> Sending model response for GISJoin %s [%d/%d]",
+					gisJoin, progressIndex, totalModels));
 			this.responseObserver.onNext(response);
 		}
 	}
