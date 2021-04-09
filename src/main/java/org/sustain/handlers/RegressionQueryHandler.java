@@ -77,6 +77,66 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		}
 	}
 
+	/**
+	 * Transforms and processes a lazily-loaded mongodb collection (Dataset<Row>) by reference, to be used
+	 * for each linear regression model per GISJoin.
+	 * @param lrRequest The gRPC Linear Regression request object.
+	 * @param requestCollection The gRPC Collection request object.
+	 * @param mongoCollection The lazily-loaded mongodb collection.
+	 */
+	private void processCollection(LinearRegressionRequest lrRequest, Collection requestCollection,
+										   Dataset<Row> mongoCollection) {
+
+		// SQL Select only _id, gis_join, features, and label columns, and discard the rest.
+		// Then, rename the label column to "label", and features column to "features".
+		mongoCollection = mongoCollection.select("_id",
+				desiredColumns(requestCollection.getFeaturesList(), requestCollection.getLabel())
+		);
+		mongoCollection.show(5);
+
+		// Rename all the features columns to "feature_0, feature_1, ..., feature_n", and label column to "label".
+		// This gives our Dataset<Row> generalized column names, which allows for LR model flexibility.
+		int featuresIndex = 0;
+		List<String> featureColumns = new ArrayList<>();
+		mongoCollection = mongoCollection.withColumnRenamed(requestCollection.getLabel(), "label");
+		for (String feature: requestCollection.getFeaturesList()) {
+			String featureColumnName = String.format("feature_%d", featuresIndex);
+			mongoCollection = mongoCollection.withColumnRenamed(feature, featureColumnName);
+			featureColumns.add(featureColumnName);
+			featuresIndex++;
+		}
+		mongoCollection.show(5);
+
+		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
+		// This greatly reduces the size of the Dataset.
+		mongoCollection = mongoCollection.filter(mongoCollection.col("gis_join")
+				.isInCollection(lrRequest.getGisJoinsList()));
+		mongoCollection.show(5);
+
+		// Assemble all the feature columns into a row-oriented Vector.
+		VectorAssembler vectorAssembler = new VectorAssembler()
+				.setInputCols(featureColumns.toArray(new String[0]))
+				.setOutputCol("features");
+		vectorAssembler.transform(mongoCollection);
+		mongoCollection.show(5);
+	}
+
+	/**
+	 * Creates and returns a custom ReadConfig to override the SparkContext's read configuration.
+	 * This is used to point the SparkContext at a specific mongo collection to read.
+	 * @param sparkContext The JavaSparkContext instance for the application.
+	 * @param collectionName The name of the mongo collection we want to read.
+	 * @return The ReadConfig object for the SparkContext.
+	 */
+	private ReadConfig createReadConfig(JavaSparkContext sparkContext, String collectionName) {
+		String mongoUri = String.format("mongodb://%s:%s", Constants.DB.HOST, Constants.DB.PORT);
+		Map<String, String> readOverrides = new HashMap<String, String>();
+		readOverrides.put("uri", mongoUri);
+		readOverrides.put("database", Constants.DB.NAME);
+		readOverrides.put("collection", collectionName);
+		return ReadConfig.create(sparkContext.getConf(), readOverrides);
+	}
+
 	private void addJars(JavaSparkContext sparkContext) {
 		String[] sparkJarPaths = {
 				"build/libs/scala-collection-compat_2.12-2.1.1.jar",
@@ -102,8 +162,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
             logRequest(this.request);
 			try {
 				// Submit task to Spark Manager
-				Future<Boolean> future =
-					this.sparkManager.submit(this, "regression-query");
+				Future<Boolean> future = this.sparkManager.submit(this, "regression-query");
 
 				// Wait for task to complete
 				future.get();
@@ -120,7 +179,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
     @Override
     public Boolean execute(JavaSparkContext sparkContext) {
-		addJars(sparkContext);
+		//addJars(sparkContext);
 		Profiler profiler = new Profiler();
 		profiler.addTask("LINEAR_REGRESSION_MODELS");
 		profiler.indent();
@@ -129,51 +188,12 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		LinearRegressionRequest lrRequest = this.request.getLinearRegressionRequest();
 		Collection requestCollection = this.request.getCollections(0); // We only support 1 collection currently
 
-		String mongoUri = String.format("mongodb://%s:%s", Constants.DB.HOST, Constants.DB.PORT);
-
-		// Create a custom ReadConfig
-		profiler.addTask("CREATE_READ_CONFIG");
-		Map<String, String> readOverrides = new HashMap<String, String>();
-		readOverrides.put("uri", mongoUri);
-		readOverrides.put("database", Constants.DB.NAME);
-		readOverrides.put("collection", requestCollection.getName());
-		ReadConfig readConfig = ReadConfig.create(sparkContext.getConf(), readOverrides);
-		profiler.completeTask("CREATE_READ_CONFIG");
-
-		// Lazy-load the collection in as a DF,
-		profiler.addTask("LOAD_MONGO_COLLECTION");
-		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, readConfig).toDF();
-
-		// SQL Select only _id, gis_join, features, and label columns, and discard the rest.
-		// Then, rename the label column to "label", and features column to "features".
-		Dataset<Row> selected = mongoCollection.select("_id",
-				desiredColumns(requestCollection.getFeaturesList(), requestCollection.getLabel())
-		);
-
-		// Rename all the features columns to "feature_0, feature_1, ..., feature_n"
-		int featuresIndex = 0;
-		List<String> featureColumns = new ArrayList<>();
-		for (String feature: requestCollection.getFeaturesList()) {
-			String featureColumnName = String.format("feature_%d", featuresIndex);
-			selected = selected.withColumnRenamed(feature, featureColumnName);
-			featureColumns.add(featureColumnName);
-			featuresIndex++;
-		}
-
-		// Rename label column to "label"
-		selected = selected.withColumnRenamed(requestCollection.getLabel(), "label");
-
-		// SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
-		Dataset<Row> gisDataset = selected.filter(selected.col("gis_join")
-				.isInCollection(lrRequest.getGisJoinsList()));
-
-		VectorAssembler vectorAssembler = new VectorAssembler()
-				.setInputCols(featureColumns.toArray(new String[0]))
-				.setOutputCol("features");
-
-		gisDataset = vectorAssembler.transform(gisDataset);
-		gisDataset.show(20);
-		gisDataset.persist();
+		// Lazy-load the collection in as a DF (Dataset<Row>), transform/process it, then persist it to be reused
+		// by each linear regression model per GISJoin
+		ReadConfig mongoReadConfig = createReadConfig(sparkContext, requestCollection.getName());
+		Dataset<Row> mongoCollection = MongoSpark.load(sparkContext, mongoReadConfig).toDF();
+		processCollection(lrRequest, requestCollection, mongoCollection);
+		mongoCollection.persist();
 
 		profiler.completeTask("LOAD_MONGO_COLLECTION");
 
@@ -185,9 +205,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			profiler.indent();
 
 			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(gisDataset)
+					.forMongoCollection(mongoCollection)
 					.forGISJoin(gisJoin)
-					.forFeatures(featureColumns)
 					.forLabel(requestCollection.getLabel())
 					.withLoss(lrRequest.getLoss())
 					.withSolver(lrRequest.getSolver())
@@ -224,7 +243,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		}
 
 		// Unpersist collection and complete task
-		gisDataset.unpersist(true);
+		mongoCollection.unpersist(true);
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());
