@@ -18,7 +18,6 @@ public class SparkManager {
 
     private static final Logger log = LogManager.getFormatterLogger(SparkManager.class);
 
-
     protected ExecutorService executorService; 
     protected List<String> jars;
     private String sparkMaster;
@@ -67,9 +66,7 @@ public class SparkManager {
             .getOrCreate();
 
         // if they don't exist - add JARs to SparkContext
-        JavaSparkContext sparkContext =
-            new JavaSparkContext(sparkSession.sparkContext());
-        sparkContext.setCheckpointDir("/s/parsons/b/others/sustain/spark/checkpoint");
+        JavaSparkContext sparkContext = new JavaSparkContext(sparkSession.sparkContext());
         for (String jar : this.jars) {
             if (!sparkContext.jars().contains(jar)) {
                 sparkContext.addJar(jar);

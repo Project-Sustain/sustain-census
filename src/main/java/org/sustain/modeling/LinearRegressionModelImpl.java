@@ -79,7 +79,7 @@ public class LinearRegressionModelImpl {
         return totalIterations;
     }
 
-    public void buildAndRunModel(Profiler profiler) {
+    public void buildAndRunModel() {
 
         log.info(">>> Building model for GISJoin {}", this.gisJoin);
 
@@ -152,7 +152,7 @@ public class LinearRegressionModelImpl {
                 .withTolerance(1E-7)
                 .build();
 
-        lrModel.buildAndRunModel(new Profiler());
+        lrModel.buildAndRunModel();
         log.info("Executed LinearRegressionModelImpl.main() successfully");
         sparkContext.close();
     }

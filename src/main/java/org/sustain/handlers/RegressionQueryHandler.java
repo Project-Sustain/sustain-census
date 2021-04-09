@@ -35,7 +35,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
     private static final Logger log = LogManager.getLogger(RegressionQueryHandler.class);
 
-    public RegressionQueryHandler(ModelRequest request, StreamObserver<ModelResponse> responseObserver, SparkManager sparkManager) {
+    public RegressionQueryHandler(ModelRequest request, StreamObserver<ModelResponse> responseObserver,
+								  SparkManager sparkManager) {
         super(request, responseObserver, sparkManager);
     }
 
@@ -103,7 +104,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		mongoCollection = mongoCollection.select("_id",
 				desiredColumns(requestCollection.getFeaturesList(), requestCollection.getLabel())
 		);
-		mongoCollection.show(5);
 
 		/*
 			Rename all the features columns to "feature_0, feature_1, ..., feature_n", and label column to "label".
@@ -127,7 +127,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			featureColumns.add(featureColumnName);
 			featuresIndex++;
 		}
-		mongoCollection.show(5);
 
 		/*
 			SQL Filter by the GISJoins that they requested (i.e. WHERE gis_join IN ( value1, value2, value3 ) )
@@ -145,7 +144,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		 */
 		mongoCollection = mongoCollection.filter(mongoCollection.col("gis_join")
 				.isInCollection(lrRequest.getGisJoinsList()));
-		mongoCollection.show(5);
 
 		/*
 			Assemble all the feature columns into a row-oriented Vector:
@@ -166,6 +164,52 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 	}
 
 	/**
+	 * Builds and trains a Linear Regression model for each GISJoin in the request, using the processed mongo
+	 * collection as a dataset. Once each model is trained, its results are streamed back to the client.
+	 * @param lrRequest The Linear Regression model request object.
+	 * @param mongoCollection The processed minimal set of data to train all models.
+	 */
+	private void launchModels(LinearRegressionRequest lrRequest, Dataset<Row> mongoCollection) {
+
+		// Build and run a model for each GISJoin in the request
+		for (String gisJoin: lrRequest.getGisJoinsList()) {
+			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
+					.forMongoCollection(mongoCollection)
+					.forGISJoin(gisJoin)
+					.withLoss(lrRequest.getLoss())
+					.withSolver(lrRequest.getSolver())
+					.withAggregationDepth(lrRequest.getAggregationDepth())
+					.withMaxIterations(lrRequest.getMaxIterations())
+					.withElasticNetParam(lrRequest.getElasticNetParam())
+					.withEpsilon(lrRequest.getEpsilon())
+					.withRegularizationParam(lrRequest.getRegularizationParam())
+					.withTolerance(lrRequest.getConvergenceTolerance())
+					.withFitIntercept(lrRequest.getFitIntercept())
+					.withStandardization(lrRequest.getSetStandardization())
+					.build();
+
+			model.buildAndRunModel(); // Launches the Spark Model
+
+			LinearRegressionResponse modelResults = LinearRegressionResponse.newBuilder()
+					.setGisJoin(model.getGisJoin())
+					.setTotalIterations(model.getTotalIterations())
+					.setRmseResidual(model.getRmse())
+					.setR2Residual(model.getR2())
+					.setIntercept(model.getIntercept())
+					.addAllSlopeCoefficients(model.getCoefficients())
+					.addAllObjectiveHistory(model.getObjectiveHistory())
+					.build();
+
+			ModelResponse response = ModelResponse.newBuilder()
+					.setLinearRegressionResponse(modelResults)
+					.build();
+
+			logResponse(response);
+			this.responseObserver.onNext(response);
+		}
+	}
+
+	/**
 	 * Creates and returns a custom ReadConfig to override the SparkContext's read configuration.
 	 * This is used to point the SparkContext at a specific mongo collection to read.
 	 * @param sparkContext The JavaSparkContext instance for the application.
@@ -179,25 +223,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		readOverrides.put("database", Constants.DB.NAME);
 		readOverrides.put("collection", collectionName);
 		return ReadConfig.create(sparkContext.getConf(), readOverrides);
-	}
-
-	private void addJars(JavaSparkContext sparkContext) {
-		String[] sparkJarPaths = {
-				"build/libs/scala-collection-compat_2.12-2.1.1.jar",
-				"build/libs/scala-library-2.12.11.jar",
-				"build/libs/scala-xml_2.12-1.2.0.jar",
-				"build/libs/scala-parser-combinators_2.12-1.1.2.jar",
-				"build/libs/mongo-spark-connector_2.12-3.0.1.jar",
-				"build/libs/spark-core_2.12-3.0.1.jar",
-				"build/libs/spark-mllib_2.12-3.0.1.jar",
-				"build/libs/spark-sql_2.12-3.0.1.jar",
-				"build/libs/bson-4.0.5.jar",
-				"build/libs/mongo-java-driver-3.12.8.jar"
-		};
-
-		for (String jar: sparkJarPaths) {
-			sparkContext.addJar(jar);
-		}
 	}
 
     @Override
@@ -223,7 +248,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
     @Override
     public Boolean execute(JavaSparkContext sparkContext) {
-		//addJars(sparkContext);
 		Profiler profiler = new Profiler();
 		profiler.addTask("LINEAR_REGRESSION_MODELS");
 		profiler.indent();
@@ -239,49 +263,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		mongoCollection = processCollection(lrRequest, requestCollection, mongoCollection);
 		mongoCollection.persist();
 
-		// Build and run a model for each GISJoin in the request
-		for (String gisJoin: lrRequest.getGisJoinsList()) {
-
-			String modelTaskName = String.format("MODEL_GISJOIN_%s", gisJoin);
-			profiler.addTask(modelTaskName);
-			profiler.indent();
-
-			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-					.forMongoCollection(mongoCollection)
-					.forGISJoin(gisJoin)
-					.withLoss(lrRequest.getLoss())
-					.withSolver(lrRequest.getSolver())
-					.withAggregationDepth(lrRequest.getAggregationDepth())
-					.withMaxIterations(lrRequest.getMaxIterations())
-					.withElasticNetParam(lrRequest.getElasticNetParam())
-					.withEpsilon(lrRequest.getEpsilon())
-					.withRegularizationParam(lrRequest.getRegularizationParam())
-					.withTolerance(lrRequest.getConvergenceTolerance())
-					.withFitIntercept(lrRequest.getFitIntercept())
-					.withStandardization(lrRequest.getSetStandardization())
-					.build();
-
-			model.buildAndRunModel(profiler); // Launches the Spark Model
-
-			LinearRegressionResponse modelResults = LinearRegressionResponse.newBuilder()
-					.setGisJoin(model.getGisJoin())
-					.setTotalIterations(model.getTotalIterations())
-					.setRmseResidual(model.getRmse())
-					.setR2Residual(model.getR2())
-					.setIntercept(model.getIntercept())
-					.addAllSlopeCoefficients(model.getCoefficients())
-					.addAllObjectiveHistory(model.getObjectiveHistory())
-					.build();
-
-			ModelResponse response = ModelResponse.newBuilder()
-					.setLinearRegressionResponse(modelResults)
-					.build();
-
-			logResponse(response);
-			profiler.completeTask(modelTaskName);
-			profiler.unindent();
-			this.responseObserver.onNext(response);
-		}
+		// Build and train a model for each GISJoin, and stream results back to client.
+		launchModels(lrRequest, mongoCollection);
 
 		// Unpersist collection and complete task
 		mongoCollection.unpersist(true);
