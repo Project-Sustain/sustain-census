@@ -1,9 +1,11 @@
 package org.sustain.modeling;
 
+import scala.Serializable;
+
 /**
  * Provides an interface for all model builder concrete classes.
  */
-public interface ModelBuilder<T> {
+public interface ModelBuilder<T> extends Serializable {
 
     public T build();
 

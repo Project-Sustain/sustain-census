@@ -21,6 +21,7 @@ import org.sustain.ModelType;
 import org.sustain.SparkManager;
 import org.sustain.SparkTask;
 import org.sustain.modeling.LinearRegressionModelImpl;
+import org.sustain.modeling.SerializableModel;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
 import scala.collection.JavaConverters;
@@ -201,6 +202,24 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// Build and run a model for each GISJoin in the request
 		log.info(">>> Total models: {}", lrRequest.getGisJoinsCount());
+
+		List<SerializableModel> testModels = new ArrayList<>();
+		testModels.add(new SerializableModel(1));
+		testModels.add(new SerializableModel(2));
+		testModels.add(new SerializableModel(3));
+		testModels.add(new SerializableModel(4));
+		testModels.add(new SerializableModel(5));
+		JavaRDD<SerializableModel> gisJoins = sparkContext.parallelize(
+				testModels
+		);
+
+		gisJoins.foreach(new VoidFunction<SerializableModel>() {
+			public void call(SerializableModel model) {
+				System.err.println(">>> SERIALIZABLE MODEL: " + model.i);
+			}
+		});
+
+		/*
 		JavaRDD<LinearRegressionModelImpl> gisJoins = sparkContext.parallelize(
 				constructModelsFromGisJoins(lrRequest.getGisJoinsList(), lrRequest, mongoCollection)
 		);
@@ -211,7 +230,12 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 								 model.buildAndRunModel(); // Trains the Spark Model
 							 }
 		});
+		 */
 
+
+
+
+		/*
 		// Collect models into list and return results
 		List<LinearRegressionModelImpl> trainedModels = gisJoins.collect();
 		for (LinearRegressionModelImpl model: trainedModels) {
@@ -233,6 +257,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			log.info(String.format(">>> Sending model response for GISJoin %s", model.getGisJoin()));
 			this.responseObserver.onNext(response);
 		}
+		 */
 	}
 
 	/**
