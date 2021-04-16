@@ -23,7 +23,8 @@ public class SustainServer {
             "build/libs/spark-mllib_2.12-3.0.1.jar",
             "build/libs/spark-sql_2.12-3.0.1.jar",
             "build/libs/bson-4.0.5.jar",
-            "build/libs/mongo-java-driver-3.12.8.jar"
+            "build/libs/mongo-java-driver-3.12.8.jar",
+            "build/libs/sustain-census-grpc-1.0-SNAPSHOT.jar"
     };
 
     private Server server;
