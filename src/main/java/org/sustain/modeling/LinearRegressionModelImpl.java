@@ -21,6 +21,7 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.util.SizeEstimator;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
+import scala.Serializable;
 import scala.collection.JavaConverters;
 
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +34,7 @@ import java.util.*;
  * Provides an interface for building generalized Linear Regression
  * models on data pulled in using Mongo's Spark Connector.
  */
-public class LinearRegressionModelImpl {
+public class LinearRegressionModelImpl implements Serializable {
 
     protected static final Logger log = LogManager.getLogger(LinearRegressionModelImpl.class);
 

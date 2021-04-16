@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -164,6 +165,31 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		return vectorAssembler.transform(mongoCollection);
 	}
 
+	private List<LinearRegressionModelImpl> constructModelsFromGisJoins(List<String> gisJoins,
+																		LinearRegressionRequest lrRequest,
+																		Dataset<Row> mongoCollection) {
+		List<LinearRegressionModelImpl> models = new ArrayList<>();
+		for (String gisJoin: gisJoins) {
+			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
+					.forMongoCollection(mongoCollection)
+					.forGISJoin(gisJoin)
+					.withLoss(lrRequest.getLoss())
+					.withSolver(lrRequest.getSolver())
+					.withAggregationDepth(lrRequest.getAggregationDepth())
+					.withMaxIterations(lrRequest.getMaxIterations())
+					.withElasticNetParam(lrRequest.getElasticNetParam())
+					.withEpsilon(lrRequest.getEpsilon())
+					.withRegularizationParam(lrRequest.getRegularizationParam())
+					.withTolerance(lrRequest.getConvergenceTolerance())
+					.withFitIntercept(lrRequest.getFitIntercept())
+					.withStandardization(lrRequest.getSetStandardization())
+					.build();
+
+			models.add(model);
+		}
+		return models;
+	}
+
 	/**
 	 * Builds and trains a Linear Regression model for each GISJoin in the request, using the processed mongo
 	 * collection as a dataset. Once each model is trained, its results are streamed back to the client.
@@ -175,45 +201,38 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// Build and run a model for each GISJoin in the request
 		log.info(">>> Total models: {}", lrRequest.getGisJoinsCount());
-		JavaRDD<String> gisJoins = sparkContext.parallelize(lrRequest.getGisJoinsList());
-		gisJoins.foreach(
-				gisJoin -> {
-					LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
-							.forMongoCollection(mongoCollection)
-							.forGISJoin(gisJoin)
-							.withLoss(lrRequest.getLoss())
-							.withSolver(lrRequest.getSolver())
-							.withAggregationDepth(lrRequest.getAggregationDepth())
-							.withMaxIterations(lrRequest.getMaxIterations())
-							.withElasticNetParam(lrRequest.getElasticNetParam())
-							.withEpsilon(lrRequest.getEpsilon())
-							.withRegularizationParam(lrRequest.getRegularizationParam())
-							.withTolerance(lrRequest.getConvergenceTolerance())
-							.withFitIntercept(lrRequest.getFitIntercept())
-							.withStandardization(lrRequest.getSetStandardization())
-							.build();
-
-					model.buildAndRunModel(); // Launches the Spark Model
-
-					LinearRegressionResponse modelResults = LinearRegressionResponse.newBuilder()
-							.setGisJoin(model.getGisJoin())
-							.setTotalIterations(model.getTotalIterations())
-							.setRmseResidual(model.getRmse())
-							.setR2Residual(model.getR2())
-							.setIntercept(model.getIntercept())
-							.addAllSlopeCoefficients(model.getCoefficients())
-							.addAllObjectiveHistory(model.getObjectiveHistory())
-							.build();
-
-					ModelResponse response = ModelResponse.newBuilder()
-							.setLinearRegressionResponse(modelResults)
-							.build();
-
-					logResponse(response);
-					log.info(String.format(">>> Sending model response for GISJoin %s", gisJoin));
-					this.responseObserver.onNext(response);
-				}
+		JavaRDD<LinearRegressionModelImpl> gisJoins = sparkContext.parallelize(
+				constructModelsFromGisJoins(lrRequest.getGisJoinsList(), lrRequest, mongoCollection)
 		);
+
+		// Train models in parallel
+		gisJoins.foreach(new VoidFunction<LinearRegressionModelImpl>() {
+							 public void call(LinearRegressionModelImpl model) {
+								 model.buildAndRunModel(); // Trains the Spark Model
+							 }
+		});
+
+		// Collect models into list and return results
+		List<LinearRegressionModelImpl> trainedModels = gisJoins.collect();
+		for (LinearRegressionModelImpl model: trainedModels) {
+			LinearRegressionResponse modelResults = LinearRegressionResponse.newBuilder()
+					.setGisJoin(model.getGisJoin())
+					.setTotalIterations(model.getTotalIterations())
+					.setRmseResidual(model.getRmse())
+					.setR2Residual(model.getR2())
+					.setIntercept(model.getIntercept())
+					.addAllSlopeCoefficients(model.getCoefficients())
+					.addAllObjectiveHistory(model.getObjectiveHistory())
+					.build();
+
+			ModelResponse response = ModelResponse.newBuilder()
+				 .setLinearRegressionResponse(modelResults)
+				 .build();
+
+			logResponse(response);
+			log.info(String.format(">>> Sending model response for GISJoin %s", model.getGisJoin()));
+			this.responseObserver.onNext(response);
+		}
 	}
 
 	/**
