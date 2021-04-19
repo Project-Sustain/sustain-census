@@ -1,2 +1,3 @@
 rootProject.name = 'sustain-census-grpc'
+include 'spark'
 

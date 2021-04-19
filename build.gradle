@@ -3,8 +3,6 @@ plugins {
     id 'application'
     // ASSUMES GRADLE 2.12 OR HIGHER. Use plugin version 0.7.5 with earlier gradle versions
     id 'com.google.protobuf' version '0.8.8'
-    // Generate IntelliJ IDEA's .idea & .iml project files
-    id 'idea'
     // Adds 'test' task
     id 'java'
 }
@@ -39,7 +37,6 @@ dependencies {
     implementation "org.apache.spark:spark-sql_2.12:3.0.1"
     implementation 'org.apache.spark:spark-mllib_2.12:3.0.1'
     implementation 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.1'
-
     compileOnly "org.apache.tomcat:annotations-api:6.0.53"
     runtimeOnly "io.netty:netty-tcnative-boringssl-static:${nettyTcNativeVersion}"
 
@@ -47,6 +44,8 @@ dependencies {
     testCompile "org.mockito:mockito-core:1.9.5"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.0'
+
+    implementation project(":spark")
 }
 
 task copyDependencies(type: Copy) {
@@ -70,13 +69,13 @@ protobuf {
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java/org/sustain', 'build/generated/source/proto/main/grpc', 'build/generated/source/proto/main/java']
+            srcDirs = ['src/main/java', 'build/generated/source/proto/main/grpc', 'build/generated/source/proto/main/java']
         }
     }
 
     test {
         java {
-            srcDir 'src/test/java/org/sustain/server'
+            srcDir 'src/test/java'
         }
     }
 }

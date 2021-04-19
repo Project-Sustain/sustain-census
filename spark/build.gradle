@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+group 'org.sustain'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.scala-lang:scala-library:2.12.10'
+    implementation "org.apache.spark:spark-core_2.12:3.0.1"
+    implementation "org.apache.spark:spark-sql_2.12:3.0.1"
+    implementation 'org.apache.spark:spark-mllib_2.12:3.0.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+test {
+    useJUnitPlatform()
+}

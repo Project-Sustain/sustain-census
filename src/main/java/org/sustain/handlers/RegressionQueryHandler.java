@@ -8,25 +8,23 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.sustain.Collection;
 import org.sustain.LinearRegressionRequest;
-import org.sustain.LinearRegressionResponse;
 import org.sustain.ModelRequest;
 import org.sustain.ModelResponse;
 import org.sustain.ModelType;
 import org.sustain.SparkManager;
 import org.sustain.SparkTask;
 import org.sustain.modeling.LinearRegressionModelImpl;
-import org.sustain.modeling.SerializableModel;
-import org.sustain.modeling.SparkFunctions;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
+import spark.SerializableModel;
+import spark.SparkFunctions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -205,6 +203,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		log.info(">>> Total models: {}", lrRequest.getGisJoinsCount());
 
 
+
 		List<SerializableModel> testModels = new ArrayList<>();
 		testModels.add(new SerializableModel(1));
 		testModels.add(new SerializableModel(2));
@@ -221,6 +220,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			log.info(">>> Updated model: {}", updatedModel.i);
 		}
 
+
 		/*
 		JavaRDD<LinearRegressionModelImpl> gisJoins = sparkContext.parallelize(
 				constructModelsFromGisJoins(lrRequest.getGisJoinsList(), lrRequest, mongoCollection)
@@ -228,6 +228,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 		// Train models in parallel
 		gisJoins.foreach(new VoidFunction<LinearRegressionModelImpl>() {
+							 @Override
 							 public void call(LinearRegressionModelImpl model) {
 								 model.buildAndRunModel(); // Trains the Spark Model
 							 }
@@ -255,8 +256,8 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			log.info(String.format(">>> Sending model response for GISJoin %s", model.getGisJoin()));
 			this.responseObserver.onNext(response);
 		}
+		*/
 
-		 */
 
 	}
 
