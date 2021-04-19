@@ -216,6 +216,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		gisJoins.foreach(new SparkFunctions());
 
 		List<SerializableModel> updatedModels = gisJoins.collect();
+		log.info(">>> Updated models count: {}", gisJoins.count());
 		for (SerializableModel updatedModel: updatedModels) {
 			log.info(">>> Updated model: {}", updatedModel.i);
 		}
