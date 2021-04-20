@@ -1,42 +1,29 @@
 /* ---------------------------------------------------------------------------------------------------------------------
- * LinearRegressionModel.java -
- *      Defines a generalized linear regression model that can be
- *      built and executed over a set of MongoDB documents.
+ * SustainLinearRegression.java -
+ *      Defines a generalized, serializable linear regression model that can be
+ *      built and executed over a set of MongoDB documents. Can be passed to
+ *      Spark Executors prior to being built.
  *
  * Author: Caleb Carlson
  * ------------------------------------------------------------------------------------------------------------------ */
 
-package org.sustain.modeling;
+package spark;
 
-import com.mongodb.spark.MongoSpark;
-import com.mongodb.spark.config.ReadConfig;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.regression.LinearRegression;
 import org.apache.spark.ml.regression.LinearRegressionModel;
 import org.apache.spark.ml.regression.LinearRegressionTrainingSummary;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.util.SizeEstimator;
-import org.sustain.util.Constants;
-import org.sustain.util.Profiler;
 import scala.Serializable;
-import scala.collection.JavaConverters;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import scala.collection.Seq;
 
 import java.util.*;
 
 /**
  * Provides an interface for building generalized Linear Regression
- * models on data pulled in using Mongo's Spark Connector.
+ * models on data pulled in using Mongo's Spark Connector. It is
+ * Serializable in order to parallelize / send it to executors as an RDD.
  */
-public class LinearRegressionModelImpl implements Serializable {
-
-    protected static final Logger log = LogManager.getLogger(LinearRegressionModelImpl.class);
+public class SustainLinearRegression implements SustainModel {
 
     private Dataset<Row>     mongoCollection;
     private String           gisJoin, loss, solver;
@@ -45,11 +32,10 @@ public class LinearRegressionModelImpl implements Serializable {
     private List<Double>     coefficients, objectiveHistory;
     private Boolean          fitIntercept, setStandardization;
 
-
     /**
      * Default constructor, made private so only the Builder class may access it.
      */
-    private LinearRegressionModelImpl() {}
+    private SustainLinearRegression() {}
 
 
     public String getGisJoin() {
@@ -80,9 +66,8 @@ public class LinearRegressionModelImpl implements Serializable {
         return totalIterations;
     }
 
-    public void buildAndRunModel() {
-
-        log.info(">>> Building model for GISJoin {}", this.gisJoin);
+    @Override
+    public void trainModel() {
 
         // Filter collection by our GISJoin
         Dataset<Row> gisDataset = this.mongoCollection.filter(
@@ -124,44 +109,12 @@ public class LinearRegressionModelImpl implements Serializable {
         this.totalIterations = summary.totalIterations();
         this.rmse = summary.rootMeanSquaredError();
         this.r2 = summary.r2();
-
-        log.info(">>> Finished building model for GISJoin {}", this.gisJoin);
     }
 
     /**
-     * Used exclusively for testing and running a linear model directly, without having to interface with gRPC.
-     * @param args Usually not used.
+     * Builder class for the SustainLinearRegression object.
      */
-    public static void main(String[] args) {
-
-        SparkSession sparkSession = SparkSession.builder()
-                .master(Constants.Spark.MASTER)
-                .appName("SUSTAIN Linear Regression Model")
-                .config("spark.mongodb.input.uri", String.format("mongodb://%s:%d", Constants.DB.HOST, Constants.DB.PORT))
-                .config("spark.mongodb.input.database", Constants.DB.NAME)
-                .config("spark.mongodb.input.collection", "maca_v2")
-                .getOrCreate();
-
-        JavaSparkContext sparkContext = new JavaSparkContext(sparkSession.sparkContext());
-        ReadConfig readConfig = ReadConfig.create(sparkContext);
-
-        LinearRegressionModelImpl lrModel = new LinearRegressionModelBuilder()
-                .forMongoCollection(MongoSpark.load(sparkContext, readConfig).toDF())
-                .forGISJoin("G0100290") // Cleburne County, Alabama
-                .withMaxIterations(100)
-                .withEpsilon(1.35)
-                .withTolerance(1E-7)
-                .build();
-
-        lrModel.buildAndRunModel();
-        log.info("Executed LinearRegressionModelImpl.main() successfully");
-        sparkContext.close();
-    }
-
-    /**
-     * Builder class for the LinearRegressionModelImpl object.
-     */
-    public static class LinearRegressionModelBuilder implements ModelBuilder<LinearRegressionModelImpl> {
+    public static class SustainLinearRegressionBuilder implements ModelBuilder<SustainLinearRegression> {
 
         private Dataset<Row>     mongoCollection;
         private String           gisJoin;
@@ -172,79 +125,79 @@ public class LinearRegressionModelImpl implements Serializable {
         private Double           elasticNetParam=0.0, epsilon=1.35, regularizationParam=0.5, convergenceTolerance=1E-6;
         private Boolean          fitIntercept=true, setStandardization=true;
 
-        public LinearRegressionModelBuilder forMongoCollection(Dataset<Row> mongoCollection) {
+        public SustainLinearRegressionBuilder forMongoCollection(Dataset<Row> mongoCollection) {
             this.mongoCollection = mongoCollection;
             return this;
         }
 
-        public LinearRegressionModelBuilder forGISJoin(String gisJoin) {
+        public SustainLinearRegressionBuilder forGISJoin(String gisJoin) {
             this.gisJoin = gisJoin;
             return this;
         }
 
-        public LinearRegressionModelBuilder withLoss(String loss) {
+        public SustainLinearRegressionBuilder withLoss(String loss) {
             if (!loss.isBlank()) {
                 this.loss = loss;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withSolver(String solver) {
+        public SustainLinearRegressionBuilder withSolver(String solver) {
             if (!solver.isBlank()) {
                 this.solver = solver;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withAggregationDepth(Integer aggregationDepth) {
+        public SustainLinearRegressionBuilder withAggregationDepth(Integer aggregationDepth) {
             if (aggregationDepth != null && aggregationDepth >= 2 && aggregationDepth <= 10) {
                 this.aggregationDepth = aggregationDepth;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withMaxIterations(Integer maxIterations) {
+        public SustainLinearRegressionBuilder withMaxIterations(Integer maxIterations) {
             if (maxIterations != null && maxIterations >= 0 && maxIterations < 100) {
                 this.maxIterations = maxIterations;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withElasticNetParam(Double elasticNetParam) {
+        public SustainLinearRegressionBuilder withElasticNetParam(Double elasticNetParam) {
             if ((elasticNetParam != null) && elasticNetParam >= 0.0 && elasticNetParam <= 1.0 ) {
                 this.elasticNetParam = elasticNetParam;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withEpsilon(Double epsilon) {
+        public SustainLinearRegressionBuilder withEpsilon(Double epsilon) {
             if (epsilon != null && epsilon > 1.0 && epsilon <= 10.0) {
                 this.epsilon = epsilon;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withRegularizationParam(Double regularizationParam) {
+        public SustainLinearRegressionBuilder withRegularizationParam(Double regularizationParam) {
             if (regularizationParam != null && regularizationParam >= 0.0 && regularizationParam <= 10.0 ) {
                 this.regularizationParam = regularizationParam;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withTolerance(Double convergenceTolerance) {
+        public SustainLinearRegressionBuilder withTolerance(Double convergenceTolerance) {
             if (convergenceTolerance != null && convergenceTolerance >= 0.0 && convergenceTolerance <= 10.0 )
-            this.convergenceTolerance = convergenceTolerance;
+                this.convergenceTolerance = convergenceTolerance;
             return this;
         }
 
-        public LinearRegressionModelBuilder withFitIntercept(Boolean fitIntercept) {
+        public SustainLinearRegressionBuilder withFitIntercept(Boolean fitIntercept) {
             if (fitIntercept != null) {
                 this.fitIntercept = fitIntercept;
             }
             return this;
         }
 
-        public LinearRegressionModelBuilder withStandardization(Boolean setStandardization) {
+        public SustainLinearRegressionBuilder withStandardization(Boolean setStandardization) {
             if (setStandardization != null) {
                 this.setStandardization = setStandardization;
             }
@@ -252,8 +205,8 @@ public class LinearRegressionModelImpl implements Serializable {
         }
 
         @Override
-        public LinearRegressionModelImpl build() {
-            LinearRegressionModelImpl model = new LinearRegressionModelImpl();
+        public SustainLinearRegression build() {
+            SustainLinearRegression model = new SustainLinearRegression();
             model.mongoCollection = this.mongoCollection;
             model.gisJoin = this.gisJoin;
             model.loss = this.loss;
@@ -269,5 +222,6 @@ public class LinearRegressionModelImpl implements Serializable {
             return model;
         }
     }
+
 
 }
