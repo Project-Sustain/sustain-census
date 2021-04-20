@@ -9,11 +9,14 @@
 
 package spark;
 
+import com.mongodb.spark.MongoSpark;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.ml.regression.LinearRegression;
 import org.apache.spark.ml.regression.LinearRegressionModel;
 import org.apache.spark.ml.regression.LinearRegressionTrainingSummary;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import scala.Serializable;
 
 import java.util.*;
@@ -25,8 +28,8 @@ import java.util.*;
  */
 public class SustainLinearRegression implements SustainModel {
 
-    private Dataset<Row>     mongoCollection;
-    private String           gisJoin, loss, solver;
+    //private Dataset<Row>     mongoCollection;
+    private String           sparkMaster, mongoRouter, database, collection, feature, label, gisJoin, loss, solver;
     private Integer          aggregationDepth, maxIterations, totalIterations;
     private Double           elasticNetParam, epsilon, regularizationParam, convergenceTolerance, rmse, r2, intercept;
     private List<Double>     coefficients, objectiveHistory;
@@ -37,6 +40,29 @@ public class SustainLinearRegression implements SustainModel {
      */
     private SustainLinearRegression() {}
 
+    public String getSparkMaster() {
+        return sparkMaster;
+    }
+
+    public String getMongoRouter() {
+        return mongoRouter;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
+
+    public String getCollection() {
+        return collection;
+    }
+
+    public String getFeature() {
+        return feature;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 
     public String getGisJoin() {
         return gisJoin;
@@ -66,9 +92,39 @@ public class SustainLinearRegression implements SustainModel {
         return totalIterations;
     }
 
+    protected SparkSession getOrCreateSparkSession() {
+        // get or create SparkSession
+        String hostname = System.getenv("HOSTNAME");
+        return SparkSession.builder()
+                .master(this.sparkMaster)
+                .appName(String.format("Sustain Linear Regression - %s", hostname))
+                .config("spark.mongodb.input.uri", String.format("%s/%s.%s",
+                        this.mongoRouter, this.database, this.collection))
+                .getOrCreate();
+    }
+
     @Override
     public void trainModel() {
 
+        // Create Spark Context
+        SparkSession sparkSession = getOrCreateSparkSession();
+        JavaSparkContext sparkContext = new JavaSparkContext(sparkSession.sparkContext());
+
+        // Lazy-load the collection in as a DF (Dataset<Row>), transform/process it, then persist it to be reused
+        // by each linear regression model per GISJoin
+        Dataset<Row> mongoCollection = MongoSpark.load(sparkContext).toDF();
+
+        mongoCollection.show(10);
+
+        // Make up fake values
+        this.intercept = -1.23;
+        this.totalIterations = 99;
+        this.rmse = -1.23;
+        this.r2 = -1.23;
+        this.coefficients = new ArrayList<>(Arrays.asList(1.0, 2.0, 3.0));
+        this.objectiveHistory = new ArrayList<>(Arrays.asList(1.1, 2.2, 3.3));
+
+        /*
         // Filter collection by our GISJoin
         Dataset<Row> gisDataset = this.mongoCollection.filter(
                 this.mongoCollection.col("gis_join").$eq$eq$eq(this.gisJoin)
@@ -109,6 +165,7 @@ public class SustainLinearRegression implements SustainModel {
         this.totalIterations = summary.totalIterations();
         this.rmse = summary.rootMeanSquaredError();
         this.r2 = summary.r2();
+         */
     }
 
     /**
@@ -116,7 +173,9 @@ public class SustainLinearRegression implements SustainModel {
      */
     public static class SustainLinearRegressionBuilder implements ModelBuilder<SustainLinearRegression> {
 
-        private Dataset<Row>     mongoCollection;
+        // Spark/mongo session/context information
+        private String           sparkMaster, mongoRouter, database, collection, feature, label;
+        //private Dataset<Row>     mongoCollection;
         private String           gisJoin;
 
         // Model parameters and their defaults
@@ -125,8 +184,40 @@ public class SustainLinearRegression implements SustainModel {
         private Double           elasticNetParam=0.0, epsilon=1.35, regularizationParam=0.5, convergenceTolerance=1E-6;
         private Boolean          fitIntercept=true, setStandardization=true;
 
+        /*
         public SustainLinearRegressionBuilder forMongoCollection(Dataset<Row> mongoCollection) {
             this.mongoCollection = mongoCollection;
+            return this;
+        }
+        */
+
+        public SustainLinearRegressionBuilder forSparkMaster(String sparkMaster) {
+            this.sparkMaster = sparkMaster;
+            return this;
+        }
+
+        public SustainLinearRegressionBuilder forMongoRouter(String mongoRouter) {
+            this.mongoRouter = mongoRouter;
+            return this;
+        }
+
+        public SustainLinearRegressionBuilder forDatabase(String database) {
+            this.database = database;
+            return this;
+        }
+
+        public SustainLinearRegressionBuilder forCollection(String collection) {
+            this.collection = collection;
+            return this;
+        }
+
+        public SustainLinearRegressionBuilder forFeature(String feature) {
+            this.feature = feature;
+            return this;
+        }
+
+        public SustainLinearRegressionBuilder forLabel(String label) {
+            this.label = label;
             return this;
         }
 
@@ -207,7 +298,13 @@ public class SustainLinearRegression implements SustainModel {
         @Override
         public SustainLinearRegression build() {
             SustainLinearRegression model = new SustainLinearRegression();
-            model.mongoCollection = this.mongoCollection;
+            //model.mongoCollection = this.mongoCollection;
+            model.sparkMaster = this.sparkMaster;
+            model.mongoRouter = this.mongoRouter;
+            model.database = this.database;
+            model.collection = this.collection;
+            model.feature = this.feature;
+            model.label = this.label;
             model.gisJoin = this.gisJoin;
             model.loss = this.loss;
             model.solver = this.solver;

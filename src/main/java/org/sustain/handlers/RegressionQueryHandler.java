@@ -171,11 +171,17 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
 	private List<SustainLinearRegression> constructModelsFromGisJoins(List<String> gisJoins,
 																		LinearRegressionRequest lrRequest,
-																		Dataset<Row> mongoCollection) {
+																		String collection, String feature, String label
+																		) {
 		List<SustainLinearRegression> models = new ArrayList<>();
 		for (String gisJoin: gisJoins) {
 			SustainLinearRegression model = new SustainLinearRegression.SustainLinearRegressionBuilder()
-					.forMongoCollection(mongoCollection)
+					.forSparkMaster(Constants.Spark.MASTER)
+					.forMongoRouter(String.format("mongodb://%s:%d", Constants.DB.HOST, Constants.DB.PORT))
+					.forDatabase(Constants.DB.NAME)
+					.forCollection(collection)
+					.forFeature(feature)
+					.forLabel(label)
 					.forGISJoin(gisJoin)
 					.withLoss(lrRequest.getLoss())
 					.withSolver(lrRequest.getSolver())
@@ -198,10 +204,10 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 	 * Builds and trains a Linear Regression model for each GISJoin in the request, using the processed mongo
 	 * collection as a dataset. Once each model is trained, its results are streamed back to the client.
 	 * @param lrRequest The Linear Regression model request object.
-	 * @param mongoCollection The processed minimal set of data to train all models.
+	 * @param collection The gRPC Collection request object.
 	 */
 	private void launchModels(JavaSparkContext sparkContext, LinearRegressionRequest lrRequest,
-							  Dataset<Row> mongoCollection) {
+							  Collection collection) {
 
 		/*
 		// Build and run a model for each GISJoin in the request
@@ -226,10 +232,11 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		}
 		*/
 
-
-
+		String collectionName = collection.getName();
+		String feature = collection.getFeatures(0); // Only support 1 feature currently
+		String label = collection.getLabel();
 		JavaRDD<SustainLinearRegression> gisJoins = sparkContext.parallelize(
-				constructModelsFromGisJoins(lrRequest.getGisJoinsList(), lrRequest, mongoCollection)
+				constructModelsFromGisJoins(lrRequest.getGisJoinsList(), lrRequest, collectionName, feature, label)
 		);
 
 		// Train models in parallel
@@ -298,14 +305,18 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 
     @Override
     public Boolean execute(JavaSparkContext sparkContext) {
+		/*
 		Profiler profiler = new Profiler();
 		profiler.addTask("LINEAR_REGRESSION_MODELS");
 		profiler.indent();
+
+		 */
 
 		// Set parameters of Linear Regression Model
 		LinearRegressionRequest lrRequest = this.request.getLinearRegressionRequest();
 		Collection requestCollection = this.request.getCollections(0); // We only support 1 collection currently
 
+		/*
 		// Lazy-load the collection in as a DF (Dataset<Row>), transform/process it, then persist it to be reused
 		// by each linear regression model per GISJoin
 		ReadConfig mongoReadConfig = createReadConfig(sparkContext, requestCollection.getName());
@@ -313,15 +324,19 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		mongoCollection = processCollection(lrRequest, requestCollection, mongoCollection);
 		mongoCollection.persist();
 
-		// Build and train a model for each GISJoin, and stream results back to client.
-		launchModels(sparkContext, lrRequest, mongoCollection);
+		 */
 
+		// Build and train a model for each GISJoin, and stream results back to client.
+		launchModels(sparkContext, lrRequest, requestCollection);
+
+		/*
 		// Unpersist collection and complete task
 		mongoCollection.unpersist(true);
 		profiler.completeTask("LINEAR_REGRESSION_MODELS");
 		profiler.unindent();
 		log.info(profiler.toString());
 
+		 */
 		return true;
     }
 
