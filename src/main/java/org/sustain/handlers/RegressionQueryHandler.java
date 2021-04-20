@@ -14,18 +14,21 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.sustain.Collection;
 import org.sustain.LinearRegressionRequest;
+import org.sustain.LinearRegressionResponse;
 import org.sustain.ModelRequest;
 import org.sustain.ModelResponse;
 import org.sustain.ModelType;
 import org.sustain.SparkManager;
 import org.sustain.SparkTask;
-import org.sustain.modeling.LinearRegressionModelImpl;
 import org.sustain.util.Constants;
 import org.sustain.util.Profiler;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import spark.SerializableModel;
 import spark.SparkMapFunctions;
+import spark.SustainLinearRegression;
+import spark.SustainModel;
+import spark.TrainLinearRegressionFunc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -166,12 +169,12 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		return vectorAssembler.transform(mongoCollection);
 	}
 
-	private List<LinearRegressionModelImpl> constructModelsFromGisJoins(List<String> gisJoins,
+	private List<SustainLinearRegression> constructModelsFromGisJoins(List<String> gisJoins,
 																		LinearRegressionRequest lrRequest,
 																		Dataset<Row> mongoCollection) {
-		List<LinearRegressionModelImpl> models = new ArrayList<>();
+		List<SustainLinearRegression> models = new ArrayList<>();
 		for (String gisJoin: gisJoins) {
-			LinearRegressionModelImpl model = new LinearRegressionModelImpl.LinearRegressionModelBuilder()
+			SustainLinearRegression model = new SustainLinearRegression.SustainLinearRegressionBuilder()
 					.forMongoCollection(mongoCollection)
 					.forGISJoin(gisJoin)
 					.withLoss(lrRequest.getLoss())
@@ -200,6 +203,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 	private void launchModels(JavaSparkContext sparkContext, LinearRegressionRequest lrRequest,
 							  Dataset<Row> mongoCollection) {
 
+		/*
 		// Build and run a model for each GISJoin in the request
 		log.info(">>> Total models: {}", lrRequest.getGisJoinsCount());
 
@@ -220,25 +224,21 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 		for (SerializableModel updatedModel: updatedModels) {
 			log.info(">>> Updated model: {}", updatedModel.i);
 		}
+		*/
 
 
-		/*
-		JavaRDD<LinearRegressionModelImpl> gisJoins = sparkContext.parallelize(
+
+		JavaRDD<SustainLinearRegression> gisJoins = sparkContext.parallelize(
 				constructModelsFromGisJoins(lrRequest.getGisJoinsList(), lrRequest, mongoCollection)
 		);
 
 		// Train models in parallel
-		gisJoins.foreach(new VoidFunction<LinearRegressionModelImpl>() {
-							 @Override
-							 public void call(LinearRegressionModelImpl model) {
-								 model.buildAndRunModel(); // Trains the Spark Model
-							 }
-		});
+		gisJoins = gisJoins.map(new TrainLinearRegressionFunc());
 
 
 		// Collect models into list and return results
-		List<LinearRegressionModelImpl> trainedModels = gisJoins.collect();
-		for (LinearRegressionModelImpl model: trainedModels) {
+		List<SustainLinearRegression> trainedModels = gisJoins.collect();
+		for (SustainLinearRegression model: trainedModels) {
 			LinearRegressionResponse modelResults = LinearRegressionResponse.newBuilder()
 					.setGisJoin(model.getGisJoin())
 					.setTotalIterations(model.getTotalIterations())
@@ -257,9 +257,6 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 			log.info(String.format(">>> Sending model response for GISJoin %s", model.getGisJoin()));
 			this.responseObserver.onNext(response);
 		}
-		*/
-
-
 	}
 
 	/**
