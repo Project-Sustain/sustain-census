@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -24,7 +25,7 @@ import org.sustain.util.Profiler;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import spark.SerializableModel;
-import spark.SparkFunctions;
+import spark.SparkMapFunctions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -213,8 +214,7 @@ public class RegressionQueryHandler extends GrpcSparkHandler<ModelRequest, Model
 				testModels
 		);
 
-		gisJoins.foreach(new SparkFunctions());
-
+		gisJoins = gisJoins.map(new SparkMapFunctions());
 		List<SerializableModel> updatedModels = gisJoins.collect();
 		log.info(">>> Updated models count: {}", gisJoins.count());
 		for (SerializableModel updatedModel: updatedModels) {
